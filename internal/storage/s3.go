@@ -5,12 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
@@ -26,10 +26,11 @@ type S3Config struct {
 
 func NewS3(cfg S3Config) (*S3, error) {
 	sess, err := session.NewSession(&aws.Config{
-		Region:      &cfg.Region,
-		Credentials: credentials.NewStaticCredentials(cfg.AccessID, cfg.Secret, ""),
+		Region: &cfg.Region,
+		Credentials: credentials.NewStaticCredentials(
+			cfg.AccessID, cfg.Secret, "",
+		),
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("create session: %w", err)
 	}

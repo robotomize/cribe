@@ -168,10 +168,6 @@ func (s *Dispatcher) dispatchingMessages(
 				}
 			}
 		}
-
-		if update.CallbackQuery != nil {
-
-		}
 	}
 
 	return nil

@@ -17,7 +17,7 @@ func (s *Dispatcher) upload(payload UploadPayload) error {
 	case *storage.S3:
 		buf, err := os.ReadFile(payload.LocalFileName)
 		if err != nil {
-			return fmt.Errorf("read file to buf: %v", err)
+			return fmt.Errorf("read file to buf: %w", err)
 		}
 		if err = s.storage.CreateObject(context.Background(), "crivevideo", payload.UploadFileName, buf); err != nil {
 			return fmt.Errorf("create blob object: %w", err)
@@ -34,7 +34,7 @@ func (s *Dispatcher) upload(payload UploadPayload) error {
 	default:
 		file, err := os.OpenFile(payload.LocalFileName, os.O_RDONLY, 0655)
 		if err != nil {
-			return fmt.Errorf("open local file: %v", err)
+			return fmt.Errorf("open local file: %w", err)
 		}
 		defer file.Close()
 

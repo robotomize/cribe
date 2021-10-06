@@ -1,7 +1,7 @@
 package hashing
 
 import (
-	"crypto/md5"
+	"crypto/md5" //nolint
 	"crypto/sha1"
 	"fmt"
 	"hash"

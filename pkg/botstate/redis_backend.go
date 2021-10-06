@@ -5,9 +5,10 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"net"
 	"time"
+
+	"github.com/go-redis/redis/v8"
 )
 
 type RedisConfig struct {

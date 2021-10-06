@@ -17,7 +17,7 @@ func main() {
 		logger.Fatalf("setup: %v", err)
 	}
 
-	defer env.RabbitMQ().Close()
+	defer env.RabbitMQ().Close() //nolint
 
 	dispatcher := bot.NewDispatcher(env)
 	if err := dispatcher.Run(ctx, env.Config()); err != nil {

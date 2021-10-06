@@ -2,12 +2,13 @@ package localization
 
 import (
 	"embed"
+	"path/filepath"
+	"sync"
+
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/robotomize/cribe/internal/logging"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v2"
-	"path/filepath"
-	"sync"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 	path = "resources"
 )
 
+// nolint
 var once sync.Once
 var localizationBundle *i18n.Bundle
 

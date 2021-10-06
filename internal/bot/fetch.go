@@ -27,7 +27,7 @@ func (s *Dispatcher) fetch(queue *amqp.Channel, videoID string, chatID int64) er
 	md5 := hashing.MD5HashFunc()
 	hash, err := md5([]byte(video.ID))
 	if err != nil {
-		return fmt.Errorf("MD5 hashing file name: %v", err)
+		return fmt.Errorf("MD5 hashing file name: %w", err)
 	}
 
 	fileName := fmt.Sprintf("%s.%s", hex.EncodeToString(hash[:]), "mp4")
@@ -42,7 +42,7 @@ func (s *Dispatcher) fetch(queue *amqp.Channel, videoID string, chatID int64) er
 		Caption:        video.Title,
 	})
 	if err != nil {
-		return fmt.Errorf("marshal fetching payload: %v", err)
+		return fmt.Errorf("marshal fetching payload: %w", err)
 	}
 
 	if _, err = os.Stat(localFileName); err != nil {
@@ -79,7 +79,7 @@ func (s *Dispatcher) fetch(queue *amqp.Channel, videoID string, chatID int64) er
 					Body:        encoded,
 				},
 			); err != nil {
-				return fmt.Errorf("publish to uploading queue: %v", err)
+				return fmt.Errorf("publish to uploading queue: %w", err)
 			}
 
 			return nil
@@ -96,7 +96,7 @@ func (s *Dispatcher) fetch(queue *amqp.Channel, videoID string, chatID int64) er
 			Body:        encoded,
 		},
 	); err != nil {
-		return fmt.Errorf("publish to uploading queue: %v", err)
+		return fmt.Errorf("publish to uploading queue: %w", err)
 	}
 
 	return nil
