@@ -1,4 +1,4 @@
-name: Bloops
+name: Cribe
 on:
   push:
     branches:
