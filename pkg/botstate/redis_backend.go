@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type RedisOptions struct {
+type RedisConfig struct {
 	Expiration time.Duration
 	// The network type, either tcp or unix.
 	// Default is tcp.
@@ -81,9 +81,8 @@ type RedisOptions struct {
 	TLSConfig *tls.Config
 }
 
-func NewRedis(ctx context.Context, opt RedisOptions) *Redis {
-	return &Redis{
-		ctx:        ctx,
+func NewRedis(opt RedisConfig) *RedisBackend {
+	return &RedisBackend{
 		expiration: opt.Expiration,
 		client: redis.NewClient(&redis.Options{
 			Network:            opt.Network,
@@ -109,17 +108,27 @@ func NewRedis(ctx context.Context, opt RedisOptions) *Redis {
 	}
 }
 
-type Redis struct {
+var _ Backend = (*RedisBackend)(nil)
+
+type RedisBackend struct {
 	ctx        context.Context
 	expiration time.Duration
 	client     *redis.Client
 }
 
-func (r Redis) Get(k interface{}) (interface{}, error) {
-	v, err := r.client.Get(context.Background(), k.(string)).Bytes()
+func (r *RedisBackend) Ping() error {
+	if err := r.client.Ping(r.ctx).Err(); err != nil {
+		return fmt.Errorf("ping to redis: %w", err)
+	}
+
+	return nil
+}
+
+func (r RedisBackend) Get(ctx context.Context, k string) ([]byte, error) {
+	v, err := r.client.Get(ctx, k).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return nil, ErrNotFound
+			return nil, ErrSessionNotFound
 		}
 
 		return nil, fmt.Errorf("redis get: %w", err)
@@ -128,16 +137,16 @@ func (r Redis) Get(k interface{}) (interface{}, error) {
 	return v, nil
 }
 
-func (r Redis) Set(k interface{}, v interface{}) error {
-	if err := r.client.Set(r.ctx, k.(string), v, -1).Err(); err != nil {
+func (r RedisBackend) Set(ctx context.Context, k string, v []byte) error {
+	if err := r.client.Set(ctx, k, v, r.expiration).Err(); err != nil {
 		return fmt.Errorf("unable set value: %w", err)
 	}
 
 	return nil
 }
 
-func (r Redis) Delete(k interface{}) error {
-	if err := r.client.Del(context.Background(), k.(string)).Err(); err != nil {
+func (r RedisBackend) Delete(ctx context.Context, k string) error {
+	if err := r.client.Del(ctx, k).Err(); err != nil {
 		return fmt.Errorf("redis delete: %w", err)
 	}
 

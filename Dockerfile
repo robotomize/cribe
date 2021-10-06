@@ -12,7 +12,7 @@ WORKDIR /src
 COPY . .
 
 ENV BUILD_INFO_PACKAGE=github.com/bloops-games/bloops/internal/buildinfo
-ENV BUILD_NAME=bloopsbot-srv
+ENV BUILD_NAME=cribe-bot
 
 RUN go build \
   -trimpath \

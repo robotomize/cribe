@@ -1,13 +1,12 @@
 package botstate
 
 import (
-	"fmt"
 	"sync"
 )
 
 const (
-	Default StateType = ""
-	NoOp    EventType = "NoOp"
+	Default StateType = "init"
+	Noop    EventType = "noop"
 )
 
 type StateType string
@@ -29,11 +28,15 @@ type State struct {
 
 type States map[StateType]State
 
+func NewStateMachine(states States) *StateMachine {
+	return &StateMachine{states: states}
+}
+
 type StateMachine struct {
 	mtx    sync.RWMutex
 	prev   StateType
 	curr   StateType
-	States States
+	states States
 }
 
 func (s *StateMachine) Current() StateType {
@@ -60,16 +63,16 @@ func (s *StateMachine) SendEvent(event EventType, eventCtx EventContext) error {
 			return ErrEventRejected
 		}
 
-		state, ok := s.States[nextState]
+		state, ok := s.states[nextState]
 		if !ok {
-			return fmt.Errorf("state not found")
+			return ErrStateNotFound
 		}
 
 		s.prev = s.curr
 		s.curr = nextState
 
 		nextEvent := state.Action.Execute(eventCtx)
-		if nextEvent == NoOp {
+		if nextEvent == Noop {
 			return nil
 		}
 
@@ -78,12 +81,13 @@ func (s *StateMachine) SendEvent(event EventType, eventCtx EventContext) error {
 }
 
 func (s *StateMachine) getNextState(event EventType) (StateType, error) {
-	if state, ok := s.States[s.curr]; ok {
+	if state, ok := s.states[s.curr]; ok {
 		if state.Events != nil {
 			if next, ok := state.Events[event]; ok {
 				return next, nil
 			}
 		}
 	}
+
 	return Default, ErrEventRejected
 }

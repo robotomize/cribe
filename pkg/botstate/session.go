@@ -1,43 +1,73 @@
 package botstate
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 )
 
-type StateEncoded struct {
-	State StateType `json:"state"`
+type Backend interface {
+	Get(ctx context.Context, k string) ([]byte, error)
+	Set(ctx context.Context, k string, v []byte) error
+	Delete(ctx context.Context, k string) error
 }
 
-func NewSession(identifier string, backend Backend, state *StateMachine) (*Session, error) {
-	var current StateEncoded
-	// load state from backend
-	s := &Session{identifier: identifier, backend: backend, state: state}
-	bytes, err := s.backend.Get(identifier)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			// load default state
-			s.state.curr = Default
+type StateEncoded struct {
+	Current  StateType `json:"current"`
+	Previous StateType `json:"previous"`
+}
 
-			return s, nil
-		}
-		return nil, fmt.Errorf("get state from session: %w", err)
-	}
+type Options struct{}
 
-	// unmarshal state
-	if err = json.Unmarshal(bytes, &current); err != nil {
-		return nil, fmt.Errorf("unable marshal: %w", err)
-	}
-
-	// set current state from backend
-	s.state.curr = current.State
-
-	return s, nil
+func NewSession(identity string, backend Backend, state *StateMachine) *Session {
+	return &Session{identity: identity, backend: backend, StateMachine: state}
 }
 
 type Session struct {
-	state      *StateMachine
-	identifier string
-	backend    Backend
+	*StateMachine
+	identity string
+	backend  Backend
+}
+
+// Flush save fsm state to backend
+func (s *Session) Flush(ctx context.Context) error {
+	encoded, err := json.Marshal(StateEncoded{Current: s.curr, Previous: s.prev})
+	if err != nil {
+		return fmt.Errorf("marshal json: %w", err)
+	}
+
+	if err = s.backend.Set(ctx, s.identity, encoded); err != nil {
+		return fmt.Errorf("unable flush state: %w", err)
+	}
+
+	return nil
+}
+
+// Load method load session data from backend and current state
+func (s *Session) Load(ctx context.Context) error {
+	var state StateEncoded
+	// load state from backend
+	bytes, err := s.backend.Get(ctx, s.identity)
+	if err != nil {
+		if errors.Is(err, ErrSessionNotFound) {
+			// load default state
+			s.curr = Default
+
+			return nil
+		}
+
+		return fmt.Errorf("get state from session: %w", err)
+	}
+
+	// unmarshal state
+	if err = json.Unmarshal(bytes, &state); err != nil {
+		return fmt.Errorf("unable marshal: %w", err)
+	}
+
+	// set state from backend
+	s.curr = state.Current
+	s.prev = state.Previous
+
+	return nil
 }
