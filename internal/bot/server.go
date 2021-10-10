@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"runtime"
 	"strconv"
+	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/kkdai/youtube/v2"
+	"github.com/robotomize/cribe/internal/db"
 	"github.com/robotomize/cribe/internal/hashing"
 	"github.com/robotomize/cribe/internal/logging"
 	"github.com/robotomize/cribe/internal/srvenv"
@@ -21,25 +23,53 @@ import (
 
 const SendingMessageError = "Oops, something went wrong, try sending the link again"
 
-var workerNum = runtime.NumCPU()
+type Options struct {
+	Bucket                    string
+	TelegramPollingTimeout    int
+	TelegramUpdatesMaxWorkers int
+	FetchingMaxWorker         int
+	UploadingMaxWorker        int
+}
 
-func NewDispatcher(env *srvenv.Env) *Dispatcher {
-	return &Dispatcher{
-		env:      env,
-		client:   env.Telegram(),
-		rabbitMQ: env.RabbitMQ(),
-		storage:  env.Blob(),
+type Option func(*Dispatcher)
+
+func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
+	cfg := env.Config()
+	d := Dispatcher{
+		opts: Options{
+			Bucket:                    cfg.Storage.Bucket,
+			TelegramPollingTimeout:    cfg.Telegram.PollingTimeout,
+			TelegramUpdatesMaxWorkers: cfg.TelegramUpdatesMaxWorkers,
+			FetchingMaxWorker:         cfg.FetchingMaxWorkers,
+			UploadingMaxWorker:        cfg.UploadingMaxWorkers,
+		},
+		env:        env,
+		metadataDB: db.NewMetadataRepository(env.DB()),
+		hashFunc:   env.HashFunc(),
+		tg:         env.Telegram(),
+		broker:     env.RabbitMQ(),
+		storage:    env.Blob(),
 	}
+
+	for _, o := range opts {
+		o(&d)
+	}
+
+	return &d
 }
 
 type Dispatcher struct {
-	env      *srvenv.Env
-	client   *tgbotapi.BotAPI
-	storage  storage.Blob
-	rabbitMQ *amqp.Connection
+	opts       Options
+	metadataDB *db.MetadataRepository
+	env        *srvenv.Env
+	hashFunc   hashing.HashFunc
+	tg         *tgbotapi.BotAPI
+	storage    storage.Blob
+	broker     *amqp.Connection
 }
 
 func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
+	logger := logging.FromContext(ctx)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -48,32 +78,44 @@ func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
 		return fmt.Errorf("configuring telegram updates: %w", err)
 	}
 
-	amqpChannel, err := s.rabbitMQ.Channel()
-	if err != nil {
-		return fmt.Errorf("can not create rabbitMQ channel: %w", err)
+	var wg sync.WaitGroup
+	for i := 0; i < 1; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err = s.consumingVideoFetching(ctx); err != nil {
+				logger.Errorf("consume fetching: %v", err)
+				cancel()
+			}
+		}()
 	}
 
-	defer amqpChannel.Close()
-
-	if _, err = amqpChannel.QueueDeclare("fetching", true, false, false, false, nil); err != nil {
-		return fmt.Errorf("can not declare rabbitMQ queue: %w", err)
+	for i := 0; i < 1; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err = s.consumingVideoUploading(ctx); err != nil {
+				logger.Errorf("consume uploading: %v", err)
+				cancel()
+			}
+		}()
 	}
 
-	if _, err = amqpChannel.QueueDeclare("uploading", true, false, false, false, nil); err != nil {
-		return fmt.Errorf("can not declare rabbitMQ queue: %w", err)
+	go func() {
+		<-ctx.Done()
+		s.tg.StopReceivingUpdates()
+		runtime.Gosched()
+	}()
+
+	for i := 0; i < 1; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s.dispatchingMessages(ctx, updates)
+		}()
 	}
 
-	if err = s.fetchingPool(ctx, amqpChannel); err != nil {
-		return fmt.Errorf("consume fetching: %w", err)
-	}
-
-	if err = s.uploadingPool(ctx, amqpChannel); err != nil {
-		return fmt.Errorf("consume uploading: %w", err)
-	}
-
-	if err = s.dispatchingMessages(ctx, updates, amqpChannel); err != nil {
-		return fmt.Errorf("telegram dispatchingMessages: %w", err)
-	}
+	wg.Wait()
 
 	return nil
 }
@@ -82,11 +124,10 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 	var updates tgbotapi.UpdatesChannel
 	logger := logging.FromContext(ctx).Named("Dispatcher.setupTelegramMode")
 	if cfg.WebHookURL != "" {
-		if _, err := s.client.SetWebhook(tgbotapi.NewWebhook(cfg.WebHookURL + cfg.Token)); err != nil {
+		if _, err := s.tg.SetWebhook(tgbotapi.NewWebhook(cfg.WebHookURL + cfg.Token)); err != nil {
 			return nil, fmt.Errorf("telegram set webhook: %w", err)
 		}
-
-		info, err := s.client.GetWebhookInfo()
+		info, err := s.tg.GetWebhookInfo()
 		if err != nil {
 			return nil, fmt.Errorf("telegram get webhook info: %w", err)
 		}
@@ -95,14 +136,14 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 			logger.Errorf("Telegram callback failed: %s", info.LastErrorMessage)
 		}
 
-		updates = s.client.ListenForWebhook("/" + s.client.Token)
+		updates = s.tg.ListenForWebhook("/" + s.tg.Token)
 		go func() {
 			if err = http.ListenAndServe(cfg.WebHookURL, nil); err != nil {
 				logger.Fatalf("Listen and serve http stopped: %v", err)
 			}
 		}()
 	} else {
-		resp, err := s.client.RemoveWebhook()
+		resp, err := s.tg.RemoveWebhook()
 		if err != nil {
 			return nil, fmt.Errorf("telegram client remove webhook: %w", err)
 		}
@@ -119,8 +160,8 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 		}
 
 		updatesChanConfig := tgbotapi.NewUpdate(0)
-		updatesChanConfig.Timeout = cfg.PollingTimeout
-		ch, err := s.client.GetUpdatesChan(updatesChanConfig)
+		updatesChanConfig.Timeout = s.opts.TelegramPollingTimeout
+		ch, err := s.tg.GetUpdatesChan(updatesChanConfig)
 		if err != nil {
 			return nil, fmt.Errorf("telegram get updates chan: %w", err)
 		}
@@ -131,42 +172,138 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 	return updates, nil
 }
 
-func (s *Dispatcher) dispatchingMessages(
-	ctx context.Context, updates tgbotapi.UpdatesChannel, rabbitMQChan *amqp.Channel,
-) error {
-	logger := logging.FromContext(ctx).Named("Dispatcher.dispatchingMessages")
-	backend := s.env.SessionBackend()
-	hashFunc := hashing.MD5HashFunc()
+func (s *Dispatcher) handleMessage(ctx context.Context, message *tgbotapi.Message) error {
+	logger := logging.FromContext(ctx)
+	userID := message.From.ID
+	sessionBackend := s.env.SessionBackend()
+	session := botstate.NewSession(strconv.FormatInt(int64(userID), 10), sessionBackend, provideFSM())
+	if err := session.Load(ctx); err != nil {
+		return fmt.Errorf("unable load session: %w", err)
+	}
 
-	go func() {
-		<-ctx.Done()
-		s.client.StopReceivingUpdates()
-	}()
+	if session.Current() == botstate.Default {
+		if err := session.SendEvent(
+			ParseVideoEvent, ParsingCtx{
+				hashFunc: s.env.HashFunc(),
+				message:  message.Text,
+				chatID:   message.Chat.ID,
+				logger:   logger,
+				tg:       s.tg,
+			},
+		); err != nil {
+			logger.Errorf("send session event: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Dispatcher) dispatchingMessages(ctx context.Context, updates tgbotapi.UpdatesChannel) {
+	logger := logging.FromContext(ctx).Named("Dispatcher.dispatchingMessages")
 
 	for update := range updates {
 		if update.Message != nil {
-			userID := update.Message.From.ID
-			session := botstate.NewSession(
-				strconv.FormatInt(int64(userID), 10), backend, provideFSM(),
-			)
-			if err := session.Load(ctx); err != nil {
-				logger.Errorf("unable load session: %v", err)
+			if err := s.handleMessage(ctx, update.Message); err != nil {
+				logger.Errorf("handle telegram message: %v", err)
 			}
+		}
+	}
+}
 
-			if session.Current() == botstate.Default {
-				if err := session.SendEvent(
-					ParseVideoEvent, ParsingCtx{
-						hashFunc:        hashFunc,
-						rabbitMQChannel: rabbitMQChan,
-						message:         update.Message.Text,
-						chatID:          update.Message.Chat.ID,
-						logger:          logger,
-						tg:              s.client,
-					},
-				); err != nil {
-					logger.Errorf("send session event: %v", err)
-				}
+func (s *Dispatcher) consumingVideoFetching(ctx context.Context) error {
+	channel, err := s.broker.Channel()
+	if err != nil {
+		return fmt.Errorf("can not create broker channel: %w", err)
+	}
+
+	defer channel.Close()
+
+	if _, err = channel.QueueDeclare("fetching", true, false, false, false, nil); err != nil {
+		return fmt.Errorf("can not declare broker queue: %w", err)
+	}
+	logger := logging.FromContext(ctx).Named("Dispatcher.consumingVideoFetching")
+	messages, err := channel.Consume("fetching", "", true, false, false, false, nil)
+	if err != nil {
+		return fmt.Errorf("amqp consume fetching: %w", err)
+	}
+
+	go func() {
+		<-ctx.Done()
+		if err = channel.Close(); err != nil {
+			logger.Errorf("broker channel close: %v", err)
+		}
+	}()
+
+	for message := range messages {
+		var payload Payload
+		if err = json.Unmarshal(message.Body, &payload); err != nil {
+			logger.Errorf("json unmarshal: %v", err)
+
+			if _, err = s.tg.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+				logger.Errorf("send message: %v", err)
+				continue
 			}
+			continue
+		}
+
+		if err = s.fetch(ctx, channel, payload); err != nil {
+			logger.Errorf("fetching video: %v", err)
+
+			if _, err = s.tg.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+				logger.Errorf("send message: %v", err)
+				continue
+			}
+			continue
+		}
+	}
+
+	return nil
+}
+
+func (s *Dispatcher) consumingVideoUploading(ctx context.Context) error {
+	channel, err := s.broker.Channel()
+	if err != nil {
+		return fmt.Errorf("can not create broker channel: %w", err)
+	}
+
+	defer channel.Close()
+
+	if _, err = channel.QueueDeclare("uploading", true, false, false, false, nil); err != nil {
+		return fmt.Errorf("can not declare broker queue: %w", err)
+	}
+
+	logger := logging.FromContext(ctx).Named("Dispatcher.consumingVideoUploading")
+	messages, err := channel.Consume("uploading", "", true, false, false, false, nil)
+	if err != nil {
+		return fmt.Errorf("amqp consume uploading: %w", err)
+	}
+
+	go func() {
+		<-ctx.Done()
+		if err = channel.Close(); err != nil {
+			logger.Errorf("broker channel close: %v", err)
+		}
+	}()
+
+	for message := range messages {
+		var payload Payload
+		if err = json.Unmarshal(message.Body, &payload); err != nil {
+			logger.Errorf("json unmarshal: %v", err)
+			if _, err = s.tg.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+				logger.Errorf("send message: %v", err)
+				continue
+			}
+			continue
+		}
+
+		if err = s.upload(ctx, payload); err != nil {
+			logger.Errorf("uploading video: %v", err)
+
+			if _, err = s.tg.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+				logger.Errorf("send message: %v", err)
+				continue
+			}
+			continue
 		}
 	}
 
@@ -196,27 +333,20 @@ const (
 	FetchingState   botstate.StateType = "parsing_url"
 )
 
-type FetchingPayload struct {
+type Payload struct {
+	Mime    string `json:"mime"`
+	Quality string `json:"quality"`
 	VideoID string `json:"video_id"`
 	ChatID  int64  `json:"chat_id"`
 }
 
-type UploadPayload struct {
-	ChatID         int64  `json:"chat_id"`
-	Title          string `json:"title"`
-	UploadFileName string `json:"upload_file_name"`
-	LocalFileName  string `json:"local_file_name"`
-	OriginFileName string `json:"origin_file_name"`
-	Caption        string `json:"caption"`
-}
-
 type ParsingCtx struct {
-	hashFunc        func([]byte) ([]byte, error)
-	tg              *tgbotapi.BotAPI
-	rabbitMQChannel *amqp.Channel
-	logger          *zap.SugaredLogger
-	message         string
-	chatID          int64
+	hashFunc func([]byte) ([]byte, error)
+	broker   *amqp.Connection
+	tg       *tgbotapi.BotAPI
+	logger   *zap.SugaredLogger
+	message  string
+	chatID   int64
 }
 
 type ParsingAction struct{}
@@ -227,7 +357,8 @@ func (p *ParsingAction) Execute(eventCtx botstate.EventContext) botstate.EventTy
 	client := youtube.Client{}
 	nextState := botstate.Noop
 
-	if _, err := client.GetVideo(ctx.message); err != nil {
+	video, err := client.GetVideo(ctx.message)
+	if err != nil {
 		logger.Warnf("parsing video metadata: %v", err)
 		if _, err = ctx.tg.Send(tgbotapi.NewMessage(ctx.chatID, SendingMessageError)); err != nil {
 			logger.Errorf("send message: %v", err)
@@ -238,7 +369,10 @@ func (p *ParsingAction) Execute(eventCtx botstate.EventContext) botstate.EventTy
 		return nextState
 	}
 
-	encoded, err := json.Marshal(&FetchingPayload{VideoID: ctx.message, ChatID: ctx.chatID})
+	encoded, err := json.Marshal(Payload{
+		VideoID: video.ID,
+		ChatID:  ctx.chatID,
+	})
 	if err != nil {
 		logger.Errorf("json marshal: %v", err)
 		if _, err = ctx.tg.Send(tgbotapi.NewMessage(ctx.chatID, SendingMessageError)); err != nil {
@@ -250,7 +384,21 @@ func (p *ParsingAction) Execute(eventCtx botstate.EventContext) botstate.EventTy
 		return nextState
 	}
 
-	if err = ctx.rabbitMQChannel.Publish(
+	channel, err := ctx.broker.Channel()
+	if err != nil {
+		logger.Errorf("parsing action, asquire amqp chan: %v", err)
+		if _, err = ctx.tg.Send(tgbotapi.NewMessage(ctx.chatID, SendingMessageError)); err != nil {
+			logger.Errorf("sending message: %v", err)
+
+			return nextState
+		}
+
+		return nextState
+	}
+
+	defer channel.Close()
+
+	if err = channel.Publish(
 		"", "fetching", false, false, amqp.Publishing{
 			ContentType: "application/json",
 			Body:        encoded,

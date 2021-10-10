@@ -1,21 +1,38 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+
 	"github.com/robotomize/cribe/internal/bot"
+	"github.com/robotomize/cribe/internal/buildinfo"
 	"github.com/robotomize/cribe/internal/logging"
 	"github.com/robotomize/cribe/internal/shutdown"
 	"github.com/robotomize/cribe/internal/srvenv"
 )
 
 func main() {
+	fmt.Fprintf(os.Stdout, buildinfo.Graffiti)
+	_, _ = fmt.Fprintf(
+		os.Stdout,
+		buildinfo.GreetingCLI,
+		buildinfo.Info.Tag(),
+		buildinfo.Info.Time(),
+		buildinfo.TgBloopURL,
+		buildinfo.GithubBloopURL,
+	)
 	ctx, cancel := shutdown.New()
 	defer cancel()
-
-	logger := logging.FromContext(ctx)
 	env, err := srvenv.Setup(ctx)
 	if err != nil {
-		logger.Fatalf("setup: %v", err)
+		log.Fatalf("setup: %v", err)
 	}
+
+	cfg := env.Config()
+
+	logger := logging.NewLogger(cfg.LogLevel)
+	ctx = logging.WithLogger(ctx, logger)
 
 	defer env.RabbitMQ().Close() //nolint
 

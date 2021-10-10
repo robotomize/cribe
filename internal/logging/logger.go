@@ -43,9 +43,11 @@ var encoderConfig = zapcore.EncoderConfig{
 	EncodeCaller:   zapcore.ShortCallerEncoder,
 }
 
-func NewLogger(debug bool) *zap.SugaredLogger {
+func NewLogger(level string) *zap.SugaredLogger {
+	zapLevel := convertLevel(level)
+
 	config := &zap.Config{
-		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		Level:       zap.NewAtomicLevelAt(zapLevel),
 		Development: false,
 		Sampling: &zap.SamplingConfig{
 			Initial:    250,
@@ -55,12 +57,6 @@ func NewLogger(debug bool) *zap.SugaredLogger {
 		EncoderConfig:    encoderConfig,
 		OutputPaths:      outputStderr,
 		ErrorOutputPaths: outputStderr,
-	}
-
-	if debug {
-		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-		config.Development = true
-		config.Sampling = nil
 	}
 
 	logger, err := config.Build()
@@ -73,7 +69,7 @@ func NewLogger(debug bool) *zap.SugaredLogger {
 
 func DefaultLogger() *zap.SugaredLogger {
 	defaultLoggerOnce.Do(func() {
-		defaultLogger = NewLogger(false)
+		defaultLogger = NewLogger("")
 	})
 	return defaultLogger
 }
@@ -87,4 +83,28 @@ func FromContext(ctx context.Context) *zap.SugaredLogger {
 		return logger
 	}
 	return DefaultLogger()
+}
+
+func convertLevel(level string) zapcore.Level {
+	var zapLevel zapcore.Level
+	switch level {
+	case "debug":
+		zapLevel = zapcore.DebugLevel
+	case "error":
+		zapLevel = zapcore.ErrorLevel
+	case "info":
+		zapLevel = zapcore.InfoLevel
+	case "fatal":
+		zapLevel = zapcore.FatalLevel
+	case "panic":
+		zapLevel = zapcore.PanicLevel
+	case "dpanic":
+		zapLevel = zapcore.DPanicLevel
+	case "warn":
+		zapLevel = zapcore.WarnLevel
+	default:
+		zapLevel = zapcore.ErrorLevel
+	}
+
+	return zapLevel
 }

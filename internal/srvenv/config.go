@@ -3,6 +3,7 @@ package srvenv
 import (
 	"time"
 
+	"github.com/robotomize/cribe/internal/db"
 	"github.com/robotomize/cribe/internal/storage"
 )
 
@@ -12,26 +13,35 @@ type RedisConfig struct {
 }
 
 type TelegramConfig struct {
+	ProxySchema    string `env:"TELEGRAM_PROXY_SCHEMA,default=http"`
+	ProxyAddr      string `env:"TELEGRAM_PROXY_ADDR,default=127.0.0.1:8081"`
 	WebHookURL     string `env:"TELEGRAM_WEBHOOK_URL"`
 	WebHookAddr    string `env:"TELEGRAM_WEBHOOK_ADDR"`
 	Token          string `env:"TELEGRAM_TOKEN"`
-	PollingTimeout int    `env:"TELEGRAM_POLLING_TIMEOUT,default=30"`
+	PollingTimeout int    `env:"TELEGRAM_POLLING_TIMEOUT,default=10"`
 }
 
-type RabbitMQConfig struct {
-	ConnectionURL string `env:"AMQP_SERVER_URL,default=amqp://guest:guest@localhost:5672/"`
+type AMQPConfig struct {
+	ConnectionURL     string        `env:"AMQP_SERVER_URL,default=amqp://guest:guest@localhost:5672/"`
+	HeartBeatDuration time.Duration `env:"AMQP_HEARTBEAT_DURATION,default=12h"`
 }
 
 type StorageConfig struct {
-	Type   string `env:"STORAGE_TYPE,default=telegram"`
-	Bucket string `env:"UPLOAD_BUCKET_NAME"`
+	Type   string `env:"STORAGE_TYPE,default=fs"`
+	Bucket string `env:"UPLOAD_BUCKET_NAME,default=/tmp"`
 	S3     storage.S3Config
 }
 
 type Config struct {
-	SessionBackend BackendType `env:"SESSION_BACKEND_TYPE,default=redis"`
-	Redis          RedisConfig
-	Telegram       TelegramConfig
-	RabbitMQ       RabbitMQConfig
-	Storage        StorageConfig
+	LogLevel                  string      `env:"LOG_LEVEL,default=error"`
+	TelegramUpdatesMaxWorkers int         `env:"TELEGRAM_UPDATES_MAX_WORKERS,default=20"`
+	FetchingMaxWorkers        int         `env:"FETCHING_MAX_WORKERS,default=20"`
+	UploadingMaxWorkers       int         `env:"UPLOADING_MAX_WORKERS,default=20"`
+	HashingFunc               string      `env:"FILE_HASHING_FUNC,default=md5"`
+	SessionBackend            BackendType `env:"SESSION_BACKEND_TYPE,default=redis"`
+	DB                        db.Config
+	Redis                     RedisConfig
+	Telegram                  TelegramConfig
+	RabbitMQ                  AMQPConfig
+	Storage                   StorageConfig
 }

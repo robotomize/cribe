@@ -1,17 +1,16 @@
 package buildinfo
 
 const (
-	Graffiti       = "___.   .__                                 ___.           __   \n\\_ |__ |  |   ____   ____ ______  ______   \\_ |__   _____/  |_ \n | __ \\|  |  /  _ \\ /  _ \\\\____ \\/  ___/    | __ \\ /  _ \\   __\\\n | \\_\\ \\  |_(  <_> |  <_> )  |_> >___ \\     | \\_\\ (  <_> )  |  \n |___  /____/\\____/ \\____/|   __/____  >____|___  /\\____/|__|  \n     \\/                   |__|       \\/_____/   \\/             \n\n"
-	GreetingCLI    = "%s %s \nbuild time: %s\ntg: %s\ngithub: %s\n"
+	Graffiti       = "             ._____.                   ___.           __   \n  ___________|__\\_ |__   ____          \\_ |__   _____/  |_ \n_/ ___\\_  __ \\  || __ \\_/ __ \\   ______ | __ \\ /  _ \\   __\\\n\\  \\___|  | \\/  || \\_\\ \\  ___/  /_____/ | \\_\\ (  <_> )  |  \n \\___  >__|  |__||___  /\\___  >         |___  /\\____/|__|  \n     \\/              \\/     \\/              \\/             "
+	GreetingCLI    = "\nversion: %s \nbuild time: %s\ntg: %s\ngithub: %s\n"
 	GithubBloopURL = "https://github.com/robotomize/cribe.git"
-	TgBloopURL     = "https://t.me/@bloops_bot"
-	BotFatherURL   = "https://t.me/BotFather"
+	TgBloopURL     = "https://t.me/@cribe_bot"
 )
 
 var (
-	BuildTag string = "v0.0.0"
-	Name     string = "cribebot"
-	Time     string = ""
+	BuildTag = "v0.0.0"
+	Name     = "cribebot"
+	Time     = ""
 )
 
 type buildinfo struct{}

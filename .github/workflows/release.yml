@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.16
+          go-version: ^1.17
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
@@ -68,17 +68,6 @@ jobs:
           skip-pkg-cache: true
           skip-build-cache: true
 
-  #  pre-build:
-  #    runs-on: ubuntu-latest
-  #    steps:
-  #      - uses: actions/checkout@v2
-  #      - name: Notification - start pipeline
-  #        uses: appleboy/telegram-action@master
-  #        with:
-  #          to: ${{ secrets.TELEGRAM_TO }}
-  #          token: ${{ secrets.TELEGRAM_TOKEN }}
-  #          args: Build started
-
   build-verify:
     needs: [ lint, test ]
     runs-on: ubuntu-latest
@@ -92,7 +81,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.16
+          go-version: ^1.17
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
@@ -123,7 +112,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.16
+          go-version: ^1.17
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
@@ -158,15 +147,3 @@ jobs:
           push: true
           tags: |
             robotomize/cribe:latest
-
-#  post-build:
-#    needs: [docker-push, build-binary]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#      - name: Notification - build complete
-#        uses: appleboy/telegram-action@master
-#        with:
-#          to: ${{ secrets.TELEGRAM_TO }}
-#          token: ${{ secrets.TELEGRAM_TOKEN }}
-#          args: Build complete

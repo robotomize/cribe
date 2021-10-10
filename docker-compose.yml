@@ -1,0 +1,53 @@
+version: "3.1"
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_cribe
+    restart: always
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    ports:
+      - "5430:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cribe
+    networks:
+      - cribe-net
+
+  redis:
+    image: redis:latest
+    container_name: redis_cribe
+    ports:
+      - "6380:6379"
+    networks:
+      - cribe-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: message-broker
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    networks:
+      - cribe-net
+
+  cribe-bot:
+    container_name: cribe-bot
+    hostname: cribe-bot
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    restart: always
+    ports:
+      - "8844:8844"
+    networks:
+      - cribe-net
+    depends_on:
+      - postgres
+
+networks:
+  cribe-net:
+    driver: bridge
+
