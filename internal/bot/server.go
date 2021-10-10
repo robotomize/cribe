@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime"
 	"strconv"
 	"sync"
 
@@ -79,7 +78,7 @@ func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
 	}
 
 	var wg sync.WaitGroup
-	for i := 0; i < 1; i++ {
+	for i := 0; i < s.opts.FetchingMaxWorker; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -90,7 +89,7 @@ func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
 		}()
 	}
 
-	for i := 0; i < 1; i++ {
+	for i := 0; i < s.opts.UploadingMaxWorker; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -104,10 +103,9 @@ func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
 	go func() {
 		<-ctx.Done()
 		s.tg.StopReceivingUpdates()
-		runtime.Gosched()
 	}()
 
-	for i := 0; i < 1; i++ {
+	for i := 0; i < s.opts.TelegramUpdatesMaxWorkers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -121,7 +119,6 @@ func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
 }
 
 func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramConfig) (tgbotapi.UpdatesChannel, error) {
-	var updates tgbotapi.UpdatesChannel
 	logger := logging.FromContext(ctx).Named("Dispatcher.setupTelegramMode")
 	if cfg.WebHookURL != "" {
 		if _, err := s.tg.SetWebhook(tgbotapi.NewWebhook(cfg.WebHookURL + cfg.Token)); err != nil {
@@ -136,37 +133,37 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 			logger.Errorf("Telegram callback failed: %s", info.LastErrorMessage)
 		}
 
-		updates = s.tg.ListenForWebhook("/" + s.tg.Token)
+		updates := s.tg.ListenForWebhook("/" + s.tg.Token)
 		go func() {
 			if err = http.ListenAndServe(cfg.WebHookURL, nil); err != nil {
 				logger.Fatalf("Listen and serve http stopped: %v", err)
 			}
 		}()
-	} else {
-		resp, err := s.tg.RemoveWebhook()
-		if err != nil {
-			return nil, fmt.Errorf("telegram client remove webhook: %w", err)
+
+		return updates, nil
+	}
+
+	resp, err := s.tg.RemoveWebhook()
+	if err != nil {
+		return nil, fmt.Errorf("telegram client remove webhook: %w", err)
+	}
+
+	if !resp.Ok {
+		if resp.ErrorCode > 0 {
+			return nil, fmt.Errorf(
+				"telegram client remove webhook with error code %d and description %s",
+				resp.ErrorCode, resp.Description,
+			)
 		}
 
-		if !resp.Ok {
-			if resp.ErrorCode > 0 {
-				return nil, fmt.Errorf(
-					"telegram client remove webhook with error code %d and description %s",
-					resp.ErrorCode, resp.Description,
-				)
-			}
+		return nil, fmt.Errorf("telegram client remove webhook response not ok")
+	}
 
-			return nil, fmt.Errorf("telegram client remove webhook response not ok")
-		}
-
-		updatesChanConfig := tgbotapi.NewUpdate(0)
-		updatesChanConfig.Timeout = s.opts.TelegramPollingTimeout
-		ch, err := s.tg.GetUpdatesChan(updatesChanConfig)
-		if err != nil {
-			return nil, fmt.Errorf("telegram get updates chan: %w", err)
-		}
-
-		updates = ch
+	updatesChanConfig := tgbotapi.NewUpdate(0)
+	updatesChanConfig.Timeout = s.opts.TelegramPollingTimeout
+	updates, err := s.tg.GetUpdatesChan(updatesChanConfig)
+	if err != nil {
+		return nil, fmt.Errorf("telegram get updates chan: %w", err)
 	}
 
 	return updates, nil
