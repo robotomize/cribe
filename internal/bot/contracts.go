@@ -3,10 +3,25 @@ package bot
 import (
 	"context"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/kkdai/youtube/v2"
+	"github.com/robotomize/cribe/internal/db"
 	"github.com/streadway/amqp"
+	"io"
 )
 
+var _ io.ReadCloser
+
 type (
+	Yotuber interface {
+		GetVideo(url string) (*youtube.Video, error)
+		GetStream(video *youtube.Video, format *youtube.Format) (io.ReadCloser, int64, error)
+	}
+
+	MetadataDB interface {
+		FetchByMetadata(ctx context.Context, videoID string, mime string, quality string) (db.Metadata, error)
+		Save(ctx context.Context, model db.Metadata) error
+	}
+
 	Telegram interface {
 		Send(c tgbotapi.Chattable) (tgbotapi.Message, error)
 		UploadFileWithContext(ctx context.Context, endpoint string, params map[string]string, fieldname string, file interface{}) (tgbotapi.APIResponse, error)

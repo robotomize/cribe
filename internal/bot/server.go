@@ -41,12 +41,13 @@ func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
 			FetchingMaxWorker:         cfg.FetchingMaxWorkers,
 			UploadingMaxWorker:        cfg.UploadingMaxWorkers,
 		},
-		env:        env,
-		metadataDB: db.NewMetadataRepository(env.DB()),
-		hashFunc:   env.HashFunc(),
-		tg:         env.Telegram(),
-		broker:     NewAMQPBroker(env.AMQP()),
-		storage:    env.Blob(),
+		env:           env,
+		metadataDB:    db.NewMetadataRepository(env.DB()),
+		hashFunc:      env.HashFunc(),
+		tg:            env.Telegram(),
+		youtubeClient: &youtube.Client{},
+		broker:        NewAMQPBroker(env.AMQP()),
+		storage:       env.Blob(),
 	}
 
 	for _, o := range opts {
@@ -57,13 +58,14 @@ func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
 }
 
 type Dispatcher struct {
-	opts       Options
-	metadataDB *db.MetadataRepository
-	env        *srvenv.Env
-	hashFunc   hashing.HashFunc
-	tg         Telegram
-	storage    Blob
-	broker     AMQPConnection
+	opts          Options
+	metadataDB    MetadataDB
+	env           *srvenv.Env
+	hashFunc      hashing.HashFunc
+	youtubeClient Yotuber
+	tg            Telegram
+	storage       Blob
+	broker        AMQPConnection
 }
 
 func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
@@ -180,11 +182,12 @@ func (s *Dispatcher) handleMessage(ctx context.Context, message *tgbotapi.Messag
 	if session.Current() == botstate.Default {
 		if err := session.SendEvent(
 			ParseVideoEvent, ParsingCtx{
-				hashFunc: s.env.HashFunc(),
-				message:  message.Text,
-				chatID:   message.Chat.ID,
-				logger:   logger,
-				tg:       s.tg,
+				hashFunc:      s.env.HashFunc(),
+				message:       message.Text,
+				chatID:        message.Chat.ID,
+				logger:        logger,
+				youtubeClient: s.youtubeClient,
+				tg:            s.tg,
 			},
 		); err != nil {
 			logger.Errorf("send session event: %v", err)
@@ -337,12 +340,13 @@ type Payload struct {
 }
 
 type ParsingCtx struct {
-	hashFunc func([]byte) ([]byte, error)
-	broker   *amqp.Connection
-	tg       Telegram
-	logger   *zap.SugaredLogger
-	message  string
-	chatID   int64
+	hashFunc      func([]byte) ([]byte, error)
+	broker        *amqp.Connection
+	tg            Telegram
+	youtubeClient Yotuber
+	logger        *zap.SugaredLogger
+	message       string
+	chatID        int64
 }
 
 type ParsingAction struct{}
@@ -350,10 +354,9 @@ type ParsingAction struct{}
 func (p *ParsingAction) Execute(eventCtx botstate.EventContext) botstate.EventType {
 	ctx := eventCtx.(ParsingCtx)
 	logger := ctx.logger.Named("ParsingAction.Execute")
-	client := youtube.Client{}
 	nextState := botstate.Noop
 
-	video, err := client.GetVideo(ctx.message)
+	video, err := ctx.youtubeClient.GetVideo(ctx.message)
 	if err != nil {
 		logger.Warnf("parsing video metadata: %v", err)
 		if _, err = ctx.tg.Send(tgbotapi.NewMessage(ctx.chatID, SendingMessageError)); err != nil {

@@ -10,14 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kkdai/youtube/v2"
 	"github.com/robotomize/cribe/internal/db"
 	"github.com/robotomize/cribe/internal/storage"
 	"github.com/streadway/amqp"
 )
 
 func (s *Dispatcher) fetch(ctx context.Context, queue AMQPChannel, payload Payload) error {
-	client := youtube.Client{}
+	client := s.youtubeClient
 	video, err := client.GetVideo(payload.VideoID)
 	if err != nil {
 		return fmt.Errorf("parsing video metadata: %w", err)
@@ -69,7 +68,11 @@ func (s *Dispatcher) fetch(ctx context.Context, queue AMQPChannel, payload Paylo
 			var thumb string
 			if len(video.Thumbnails) > 0 {
 				idx := strings.Index(video.Thumbnails[0].URL, "?")
-				thumb = video.Thumbnails[0].URL[:idx]
+				if idx > -1 {
+					thumb = video.Thumbnails[0].URL[:idx]
+				} else {
+					thumb = ""
+				}
 			}
 
 			if err = s.metadataDB.Save(ctx, db.Metadata{

@@ -8,6 +8,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/go-telegram-bot-api/telegram-bot-api v1.0.1-0.20201020035208-b6df6c273aa8
 	github.com/golang-migrate/migrate/v4 v4.15.0
+	github.com/golang/mock v1.6.0
 	github.com/jackc/pgx/v4 v4.13.0
 	github.com/kkdai/youtube/v2 v2.7.4
 	github.com/lib/pq v1.10.2
@@ -45,6 +46,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
 
-replace github.com/kkdai/youtube/v2 v2.7.4 => github.com/robotomize/youtube/v2 v2.7.5-0.20211004084108-fc2d2467347a
-
-replace github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible => github.com/robotomize/telegram-bot-api v1.0.1-0.20211011160432-7f279bff1862
+replace (
+	github.com/go-telegram-bot-api/telegram-bot-api => github.com/robotomize/telegram-bot-api v1.0.1-0.20211011160432-7f279bff1862
+	github.com/kkdai/youtube/v2 v2.7.4 => github.com/robotomize/youtube/v2 v2.7.5-0.20211004084108-fc2d2467347a
+)
