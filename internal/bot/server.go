@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
 	"net/http"
 	"strconv"
 	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/hashicorp/go-multierror"
 	"github.com/kkdai/youtube/v2"
 	"github.com/robotomize/cribe/internal/db"
 	"github.com/robotomize/cribe/internal/hashing"
@@ -150,17 +150,17 @@ func (s *Dispatcher) finalization() error {
 
 	channel, err := s.broker.Chan()
 	if err != nil {
-		return fmt.Errorf("can not create broker channel: %v", err)
+		return fmt.Errorf("can not create broker channel: %w", err)
 	}
 
 	defer channel.Close()
 
 	if _, err = channel.QueueDeclare(QueueFetching, true, false, false, false, nil); err != nil {
-		return fmt.Errorf("can not declare broker queue: %v", err)
+		return fmt.Errorf("can not declare broker queue: %w", err)
 	}
 
 	if _, err = channel.QueueDeclare(QueueUploading, true, false, false, false, nil); err != nil {
-		return fmt.Errorf("can not declare broker queue: %v", err)
+		return fmt.Errorf("can not declare broker queue: %w", err)
 	}
 
 	var merr *multierror.Error
