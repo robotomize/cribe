@@ -44,7 +44,6 @@ func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
 		env:           env,
 		metadataDB:    db.NewMetadataRepository(env.DB()),
 		hashFunc:      env.HashFunc(),
-		tg:            env.Telegram(),
 		youtubeClient: &youtube.Client{},
 		broker:        NewAMQPBroker(env.AMQP()),
 		storage:       env.Blob(),
@@ -63,17 +62,16 @@ type Dispatcher struct {
 	env           *srvenv.Env
 	hashFunc      hashing.HashFunc
 	youtubeClient Yotuber
-	tg            Telegram
 	storage       Blob
 	broker        AMQPConnection
 }
 
-func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
+func (s *Dispatcher) Run(ctx context.Context, telegram *tgbotapi.BotAPI, cfg srvenv.Config) error {
 	logger := logging.FromContext(ctx)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	updates, err := s.setupTelegramMode(ctx, cfg.Telegram)
+	updates, err := s.setupTelegramMode(ctx, telegram, cfg.Telegram)
 	if err != nil {
 		return fmt.Errorf("configuring telegram updates: %w", err)
 	}
@@ -83,7 +81,7 @@ func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err = s.consumingVideoFetching(ctx); err != nil {
+			if err = s.consumingVideoFetching(ctx, telegram); err != nil {
 				logger.Errorf("consume fetching: %v", err)
 				cancel()
 			}
@@ -94,7 +92,7 @@ func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err = s.consumingVideoUploading(ctx); err != nil {
+			if err = s.consumingVideoUploading(ctx, telegram); err != nil {
 				logger.Errorf("consume uploading: %v", err)
 				cancel()
 			}
@@ -103,14 +101,14 @@ func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
 
 	go func() {
 		<-ctx.Done()
-		s.tg.StopReceivingUpdates()
+		telegram.StopReceivingUpdates()
 	}()
 
 	for i := 0; i < s.opts.TelegramUpdatesMaxWorkers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			s.dispatchingMessages(ctx, updates)
+			s.dispatchingMessages(ctx, telegram, updates)
 		}()
 	}
 
@@ -119,13 +117,13 @@ func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
 	return nil
 }
 
-func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramConfig) (tgbotapi.UpdatesChannel, error) {
+func (s *Dispatcher) setupTelegramMode(ctx context.Context, telegram *tgbotapi.BotAPI, cfg srvenv.TelegramConfig) (tgbotapi.UpdatesChannel, error) {
 	logger := logging.FromContext(ctx).Named("Dispatcher.setupTelegramMode")
 	if cfg.WebHookURL != "" {
-		if _, err := s.tg.SetWebhook(tgbotapi.NewWebhook(cfg.WebHookURL + cfg.Token)); err != nil {
+		if _, err := telegram.SetWebhook(tgbotapi.NewWebhook(cfg.WebHookURL + cfg.Token)); err != nil {
 			return nil, fmt.Errorf("telegram set webhook: %w", err)
 		}
-		info, err := s.tg.GetWebhookInfo()
+		info, err := telegram.GetWebhookInfo()
 		if err != nil {
 			return nil, fmt.Errorf("telegram get webhook info: %w", err)
 		}
@@ -134,7 +132,7 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 			logger.Errorf("Telegram callback failed: %s", info.LastErrorMessage)
 		}
 
-		updates := s.tg.ListenForWebhook("/" + cfg.Token)
+		updates := telegram.ListenForWebhook("/" + cfg.Token)
 		go func() {
 			if err = http.ListenAndServe(cfg.WebHookURL, nil); err != nil {
 				logger.Fatalf("Listen and serve http stopped: %v", err)
@@ -144,7 +142,7 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 		return updates, nil
 	}
 
-	resp, err := s.tg.RemoveWebhook()
+	resp, err := telegram.RemoveWebhook()
 	if err != nil {
 		return nil, fmt.Errorf("telegram client remove webhook: %w", err)
 	}
@@ -162,7 +160,7 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 
 	updatesChanConfig := tgbotapi.NewUpdate(0)
 	updatesChanConfig.Timeout = s.opts.TelegramPollingTimeout
-	updates, err := s.tg.GetUpdatesChan(updatesChanConfig)
+	updates, err := telegram.GetUpdatesChan(updatesChanConfig)
 	if err != nil {
 		return nil, fmt.Errorf("telegram get updates chan: %w", err)
 	}
@@ -170,7 +168,7 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 	return updates, nil
 }
 
-func (s *Dispatcher) handleMessage(ctx context.Context, message *tgbotapi.Message) error {
+func (s *Dispatcher) handleMessage(ctx context.Context, sender TelegramSender, message *tgbotapi.Message) error {
 	logger := logging.FromContext(ctx)
 	userID := message.From.ID
 	sessionBackend := s.env.SessionBackend()
@@ -187,7 +185,7 @@ func (s *Dispatcher) handleMessage(ctx context.Context, message *tgbotapi.Messag
 				chatID:        message.Chat.ID,
 				logger:        logger,
 				youtubeClient: s.youtubeClient,
-				tg:            s.tg,
+				tg:            sender,
 			},
 		); err != nil {
 			logger.Errorf("send session event: %v", err)
@@ -197,19 +195,19 @@ func (s *Dispatcher) handleMessage(ctx context.Context, message *tgbotapi.Messag
 	return nil
 }
 
-func (s *Dispatcher) dispatchingMessages(ctx context.Context, updates tgbotapi.UpdatesChannel) {
+func (s *Dispatcher) dispatchingMessages(ctx context.Context, sender TelegramSender, updates tgbotapi.UpdatesChannel) {
 	logger := logging.FromContext(ctx).Named("Dispatcher.dispatchingMessages")
 
 	for update := range updates {
 		if update.Message != nil {
-			if err := s.handleMessage(ctx, update.Message); err != nil {
+			if err := s.handleMessage(ctx, sender, update.Message); err != nil {
 				logger.Errorf("handle telegram message: %v", err)
 			}
 		}
 	}
 }
 
-func (s *Dispatcher) consumingVideoFetching(ctx context.Context) error {
+func (s *Dispatcher) consumingVideoFetching(ctx context.Context, sender TelegramSender) error {
 	channel, err := s.broker.Chan()
 	if err != nil {
 		return fmt.Errorf("can not create broker channel: %w", err)
@@ -238,7 +236,7 @@ func (s *Dispatcher) consumingVideoFetching(ctx context.Context) error {
 		if err = json.Unmarshal(message.Body, &payload); err != nil {
 			logger.Errorf("json unmarshal: %v", err)
 
-			if _, err = s.tg.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+			if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
 				logger.Errorf("send message: %v", err)
 				continue
 			}
@@ -248,7 +246,7 @@ func (s *Dispatcher) consumingVideoFetching(ctx context.Context) error {
 		if err = s.fetch(ctx, channel, payload); err != nil {
 			logger.Errorf("fetching video: %v", err)
 
-			if _, err = s.tg.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+			if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
 				logger.Errorf("send message: %v", err)
 				continue
 			}
@@ -259,7 +257,7 @@ func (s *Dispatcher) consumingVideoFetching(ctx context.Context) error {
 	return nil
 }
 
-func (s *Dispatcher) consumingVideoUploading(ctx context.Context) error {
+func (s *Dispatcher) consumingVideoUploading(ctx context.Context, sender TelegramSender) error {
 	channel, err := s.broker.Chan()
 	if err != nil {
 		return fmt.Errorf("can not create broker channel: %w", err)
@@ -288,17 +286,17 @@ func (s *Dispatcher) consumingVideoUploading(ctx context.Context) error {
 		var payload Payload
 		if err = json.Unmarshal(message.Body, &payload); err != nil {
 			logger.Errorf("json unmarshal: %v", err)
-			if _, err = s.tg.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+			if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
 				logger.Errorf("send message: %v", err)
 				continue
 			}
 			continue
 		}
 
-		if err = s.upload(ctx, payload); err != nil {
+		if err = s.upload(ctx, sender, payload); err != nil {
 			logger.Errorf("uploading video: %v", err)
 
-			if _, err = s.tg.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+			if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
 				logger.Errorf("send message: %v", err)
 				continue
 			}
@@ -342,7 +340,7 @@ type Payload struct {
 type ParsingCtx struct {
 	hashFunc      func([]byte) ([]byte, error)
 	broker        *amqp.Connection
-	tg            Telegram
+	tg            TelegramSender
 	youtubeClient Yotuber
 	logger        *zap.SugaredLogger
 	message       string

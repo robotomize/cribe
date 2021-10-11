@@ -122,90 +122,31 @@ func (mr *MockMetadataDBMockRecorder) Save(ctx, model interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockMetadataDB)(nil).Save), ctx, model)
 }
 
-// MockTelegram is a mock of Telegram interface.
-type MockTelegram struct {
+// MockTelegramSender is a mock of TelegramSender interface.
+type MockTelegramSender struct {
 	ctrl     *gomock.Controller
-	recorder *MockTelegramMockRecorder
+	recorder *MockTelegramSenderMockRecorder
 }
 
-// MockTelegramMockRecorder is the mock recorder for MockTelegram.
-type MockTelegramMockRecorder struct {
-	mock *MockTelegram
+// MockTelegramSenderMockRecorder is the mock recorder for MockTelegramSender.
+type MockTelegramSenderMockRecorder struct {
+	mock *MockTelegramSender
 }
 
-// NewMockTelegram creates a new mock instance.
-func NewMockTelegram(ctrl *gomock.Controller) *MockTelegram {
-	mock := &MockTelegram{ctrl: ctrl}
-	mock.recorder = &MockTelegramMockRecorder{mock}
+// NewMockTelegramSender creates a new mock instance.
+func NewMockTelegramSender(ctrl *gomock.Controller) *MockTelegramSender {
+	mock := &MockTelegramSender{ctrl: ctrl}
+	mock.recorder = &MockTelegramSenderMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockTelegram) EXPECT() *MockTelegramMockRecorder {
+func (m *MockTelegramSender) EXPECT() *MockTelegramSenderMockRecorder {
 	return m.recorder
 }
 
-// GetUpdatesChan mocks base method.
-func (m *MockTelegram) GetUpdatesChan(config telegram_bot_api.UpdateConfig) (telegram_bot_api.UpdatesChannel, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUpdatesChan", config)
-	ret0, _ := ret[0].(telegram_bot_api.UpdatesChannel)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUpdatesChan indicates an expected call of GetUpdatesChan.
-func (mr *MockTelegramMockRecorder) GetUpdatesChan(config interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpdatesChan", reflect.TypeOf((*MockTelegram)(nil).GetUpdatesChan), config)
-}
-
-// GetWebhookInfo mocks base method.
-func (m *MockTelegram) GetWebhookInfo() (telegram_bot_api.WebhookInfo, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetWebhookInfo")
-	ret0, _ := ret[0].(telegram_bot_api.WebhookInfo)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetWebhookInfo indicates an expected call of GetWebhookInfo.
-func (mr *MockTelegramMockRecorder) GetWebhookInfo() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWebhookInfo", reflect.TypeOf((*MockTelegram)(nil).GetWebhookInfo))
-}
-
-// ListenForWebhook mocks base method.
-func (m *MockTelegram) ListenForWebhook(pattern string) telegram_bot_api.UpdatesChannel {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListenForWebhook", pattern)
-	ret0, _ := ret[0].(telegram_bot_api.UpdatesChannel)
-	return ret0
-}
-
-// ListenForWebhook indicates an expected call of ListenForWebhook.
-func (mr *MockTelegramMockRecorder) ListenForWebhook(pattern interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListenForWebhook", reflect.TypeOf((*MockTelegram)(nil).ListenForWebhook), pattern)
-}
-
-// RemoveWebhook mocks base method.
-func (m *MockTelegram) RemoveWebhook() (telegram_bot_api.APIResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveWebhook")
-	ret0, _ := ret[0].(telegram_bot_api.APIResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RemoveWebhook indicates an expected call of RemoveWebhook.
-func (mr *MockTelegramMockRecorder) RemoveWebhook() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveWebhook", reflect.TypeOf((*MockTelegram)(nil).RemoveWebhook))
-}
-
 // Send mocks base method.
-func (m *MockTelegram) Send(c telegram_bot_api.Chattable) (telegram_bot_api.Message, error) {
+func (m *MockTelegramSender) Send(c telegram_bot_api.Chattable) (telegram_bot_api.Message, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", c)
 	ret0, _ := ret[0].(telegram_bot_api.Message)
@@ -214,40 +155,13 @@ func (m *MockTelegram) Send(c telegram_bot_api.Chattable) (telegram_bot_api.Mess
 }
 
 // Send indicates an expected call of Send.
-func (mr *MockTelegramMockRecorder) Send(c interface{}) *gomock.Call {
+func (mr *MockTelegramSenderMockRecorder) Send(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockTelegram)(nil).Send), c)
-}
-
-// SetWebhook mocks base method.
-func (m *MockTelegram) SetWebhook(config telegram_bot_api.WebhookConfig) (telegram_bot_api.APIResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetWebhook", config)
-	ret0, _ := ret[0].(telegram_bot_api.APIResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SetWebhook indicates an expected call of SetWebhook.
-func (mr *MockTelegramMockRecorder) SetWebhook(config interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetWebhook", reflect.TypeOf((*MockTelegram)(nil).SetWebhook), config)
-}
-
-// StopReceivingUpdates mocks base method.
-func (m *MockTelegram) StopReceivingUpdates() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "StopReceivingUpdates")
-}
-
-// StopReceivingUpdates indicates an expected call of StopReceivingUpdates.
-func (mr *MockTelegramMockRecorder) StopReceivingUpdates() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopReceivingUpdates", reflect.TypeOf((*MockTelegram)(nil).StopReceivingUpdates))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockTelegramSender)(nil).Send), c)
 }
 
 // UploadFileWithContext mocks base method.
-func (m *MockTelegram) UploadFileWithContext(ctx context.Context, endpoint string, params map[string]string, fieldname string, file interface{}) (telegram_bot_api.APIResponse, error) {
+func (m *MockTelegramSender) UploadFileWithContext(ctx context.Context, endpoint string, params map[string]string, fieldname string, file interface{}) (telegram_bot_api.APIResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadFileWithContext", ctx, endpoint, params, fieldname, file)
 	ret0, _ := ret[0].(telegram_bot_api.APIResponse)
@@ -256,9 +170,9 @@ func (m *MockTelegram) UploadFileWithContext(ctx context.Context, endpoint strin
 }
 
 // UploadFileWithContext indicates an expected call of UploadFileWithContext.
-func (mr *MockTelegramMockRecorder) UploadFileWithContext(ctx, endpoint, params, fieldname, file interface{}) *gomock.Call {
+func (mr *MockTelegramSenderMockRecorder) UploadFileWithContext(ctx, endpoint, params, fieldname, file interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFileWithContext", reflect.TypeOf((*MockTelegram)(nil).UploadFileWithContext), ctx, endpoint, params, fieldname, file)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFileWithContext", reflect.TypeOf((*MockTelegramSender)(nil).UploadFileWithContext), ctx, endpoint, params, fieldname, file)
 }
 
 // MockAMQPChannel is a mock of AMQPChannel interface.

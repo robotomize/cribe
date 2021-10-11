@@ -50,8 +50,9 @@ func main() {
 		}
 	}()
 
+	telegram := env.Telegram()
 	dispatcher := bot.NewDispatcher(env)
-	if err = dispatcher.Run(ctx, env.Config()); err != nil {
+	if err = dispatcher.Run(ctx, telegram, env.Config()); err != nil {
 		logger.Fatalf("bot dispatcher: %v", err)
 	}
 }

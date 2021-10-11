@@ -3,13 +3,15 @@ package bot
 import (
 	"context"
 	"errors"
-	"github.com/golang/mock/gomock"
-	"github.com/kkdai/youtube/v2"
-	"github.com/robotomize/cribe/internal/db"
-	"github.com/robotomize/cribe/internal/storage"
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+	"github.com/kkdai/youtube/v2"
+	"github.com/robotomize/cribe/internal/db"
+	"github.com/robotomize/cribe/internal/srvenv"
+	"github.com/robotomize/cribe/internal/storage"
 )
 
 func TestDispatcher_fetch(t *testing.T) {
@@ -397,11 +399,13 @@ func TestDispatcher_fetch(t *testing.T) {
 				GetObject(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(tc.storageGetObject, tc.storageGetErr).
 				AnyTimes()
+			deps.amqp.EXPECT().Chan().Return(NewMockAMQPChannel(deps.ctrl), nil).AnyTimes()
 			deps.channel.
 				EXPECT().
 				Publish(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(tc.publishErr).
 				AnyTimes()
+			deps.channel.EXPECT().Close().Return(nil).AnyTimes()
 			stringReader := strings.NewReader("12345")
 			stringReadCloser := io.NopCloser(stringReader)
 
@@ -410,11 +414,11 @@ func TestDispatcher_fetch(t *testing.T) {
 				GetStream(gomock.Any(), gomock.Any()).
 				Return(stringReadCloser, int64(stringReader.Len()), tc.streamVideoErr).
 				AnyTimes()
-			d := Dispatcher{
-				youtubeClient: deps.youtubeClient,
-				metadataDB:    deps.metadata,
-				storage:       deps.storage,
-			}
+
+			d := NewDispatcher(&srvenv.Env{})
+			d.youtubeClient = deps.youtubeClient
+			d.metadataDB = deps.metadata
+			d.storage = deps.storage
 
 			err := d.fetch(context.Background(), deps.channel, tc.payload)
 			if (err != nil) && tc.err == nil {

@@ -13,7 +13,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
-func (s *Dispatcher) upload(ctx context.Context, payload Payload) error {
+func (s *Dispatcher) upload(ctx context.Context, sender TelegramSender, payload Payload) error {
 	encoded, err := json.Marshal(Payload{
 		VideoID: payload.VideoID,
 		ChatID:  payload.ChatID,
@@ -52,7 +52,7 @@ func (s *Dispatcher) upload(ctx context.Context, payload Payload) error {
 	if metadata.FileID != "" {
 		config := tgbotapi.NewVideoShare(payload.ChatID, metadata.FileID)
 		config.Caption = metadata.Params.Title
-		if _, err = s.tg.Send(config); err != nil {
+		if _, err = sender.Send(config); err != nil {
 			return fmt.Errorf("send message with video: %w", err)
 		}
 
@@ -85,7 +85,7 @@ func (s *Dispatcher) upload(ctx context.Context, payload Payload) error {
 		"caption":              metadata.Params.Title,
 		"disable_notification": "true",
 	}
-	resp, err := s.tg.UploadFileWithContext(ctx, "sendVideo", params, "video", tgbotapi.FileBytes{
+	resp, err := sender.UploadFileWithContext(ctx, "sendVideo", params, "video", tgbotapi.FileBytes{
 		Name:  metadata.Params.Title,
 		Bytes: file,
 	})

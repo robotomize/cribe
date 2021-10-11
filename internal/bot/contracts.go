@@ -2,11 +2,12 @@ package bot
 
 import (
 	"context"
+	"io"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/kkdai/youtube/v2"
 	"github.com/robotomize/cribe/internal/db"
 	"github.com/streadway/amqp"
-	"io"
 )
 
 var _ io.ReadCloser
@@ -22,15 +23,9 @@ type (
 		Save(ctx context.Context, model db.Metadata) error
 	}
 
-	Telegram interface {
+	TelegramSender interface {
 		Send(c tgbotapi.Chattable) (tgbotapi.Message, error)
 		UploadFileWithContext(ctx context.Context, endpoint string, params map[string]string, fieldname string, file interface{}) (tgbotapi.APIResponse, error)
-		GetUpdatesChan(config tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error)
-		ListenForWebhook(pattern string) tgbotapi.UpdatesChannel
-		GetWebhookInfo() (tgbotapi.WebhookInfo, error)
-		SetWebhook(config tgbotapi.WebhookConfig) (tgbotapi.APIResponse, error)
-		RemoveWebhook() (tgbotapi.APIResponse, error)
-		StopReceivingUpdates()
 	}
 
 	AMQPChannel interface {
