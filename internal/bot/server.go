@@ -293,11 +293,11 @@ func (s *Dispatcher) consumingVideoFetching(ctx context.Context, sender Telegram
 
 	defer channel.Close()
 
-	if _, err = channel.QueueDeclare("fetching", true, false, false, false, nil); err != nil {
+	if _, err = channel.QueueDeclare(QueueFetching, true, false, false, false, nil); err != nil {
 		return fmt.Errorf("can not declare broker queue: %w", err)
 	}
 	logger := logging.FromContext(ctx).Named("Dispatcher.consumingVideoFetching")
-	messages, err := channel.Consume("fetching", "", true, false, false, false, nil)
+	messages, err := channel.Consume(QueueFetching, "", true, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("amqp consume fetching: %w", err)
 	}
@@ -351,12 +351,12 @@ func (s *Dispatcher) consumingVideoUploading(ctx context.Context, sender Telegra
 
 	defer channel.Close()
 
-	if _, err = channel.QueueDeclare("uploading", true, false, false, false, nil); err != nil {
+	if _, err = channel.QueueDeclare(QueueUploading, true, false, false, false, nil); err != nil {
 		return fmt.Errorf("can not declare broker queue: %w", err)
 	}
 
 	logger := logging.FromContext(ctx).Named("Dispatcher.consumingVideoUploading")
-	messages, err := channel.Consume("uploading", "", true, false, false, false, nil)
+	messages, err := channel.Consume(QueueUploading, "", true, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("amqp consume uploading: %w", err)
 	}
