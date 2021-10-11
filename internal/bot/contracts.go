@@ -9,7 +9,7 @@ import (
 type (
 	Telegram interface {
 		Send(c tgbotapi.Chattable) (tgbotapi.Message, error)
-		UploadFile(endpoint string, params map[string]string, fieldname string, file interface{}) (tgbotapi.APIResponse, error)
+		UploadFileWithContext(ctx context.Context, endpoint string, params map[string]string, fieldname string, file interface{}) (tgbotapi.APIResponse, error)
 		GetUpdatesChan(config tgbotapi.UpdateConfig) (tgbotapi.UpdatesChannel, error)
 		ListenForWebhook(pattern string) tgbotapi.UpdatesChannel
 		GetWebhookInfo() (tgbotapi.WebhookInfo, error)

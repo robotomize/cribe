@@ -85,7 +85,7 @@ func (s *Dispatcher) upload(ctx context.Context, payload Payload) error {
 		"caption":              metadata.Params.Title,
 		"disable_notification": "true",
 	}
-	resp, err := s.tg.UploadFile("sendVideo", params, "video", tgbotapi.FileBytes{
+	resp, err := s.tg.UploadFileWithContext(ctx, "sendVideo", params, "video", tgbotapi.FileBytes{
 		Name:  metadata.Params.Title,
 		Bytes: file,
 	})
