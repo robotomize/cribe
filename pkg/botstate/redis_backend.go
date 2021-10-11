@@ -82,8 +82,8 @@ type RedisConfig struct {
 	TLSConfig *tls.Config
 }
 
-func NewRedis(opt RedisConfig) *RedisBackend {
-	return &RedisBackend{
+func NewRedis(opt RedisConfig) (*RedisBackend, error) {
+	r := &RedisBackend{
 		expiration: opt.Expiration,
 		client: redis.NewClient(&redis.Options{
 			Network:            opt.Network,
@@ -107,6 +107,12 @@ func NewRedis(opt RedisConfig) *RedisBackend {
 			TLSConfig:          opt.TLSConfig,
 		}),
 	}
+
+	if err := r.client.Ping(context.Background()).Err(); err != nil {
+		return nil, fmt.Errorf("redis ping: %w", err)
+	}
+
+	return r, nil
 }
 
 var _ Backend = (*RedisBackend)(nil)

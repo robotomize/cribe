@@ -39,6 +39,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/Dockerfile
+
     restart: always
     ports:
       - "8844:8844"

@@ -3,7 +3,9 @@ package bot
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/hashicorp/go-multierror"
 	"net/http"
 	"strconv"
 	"sync"
@@ -20,6 +22,23 @@ import (
 )
 
 const SendingMessageError = "Oops, something went wrong, try sending the link again"
+
+const (
+	QueueFetching  = "fetching"
+	QueueUploading = "uploading"
+)
+
+type JobKind uint8
+
+const (
+	JobKindFetching JobKind = iota
+	JobKindUploading
+)
+
+type Job struct {
+	Kind JobKind
+	Payload
+}
 
 type Options struct {
 	Bucket                    string
@@ -47,6 +66,7 @@ func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
 		youtubeClient: &youtube.Client{},
 		broker:        NewAMQPBroker(env.AMQP()),
 		storage:       env.Blob(),
+		Jobs:          make([]Job, 0),
 	}
 
 	for _, o := range opts {
@@ -64,6 +84,9 @@ type Dispatcher struct {
 	youtubeClient Yotuber
 	storage       Blob
 	broker        AMQPConnection
+
+	mtx  sync.RWMutex
+	Jobs []Job
 }
 
 func (s *Dispatcher) Run(ctx context.Context, telegram *tgbotapi.BotAPI, cfg srvenv.Config) error {
@@ -114,7 +137,61 @@ func (s *Dispatcher) Run(ctx context.Context, telegram *tgbotapi.BotAPI, cfg srv
 
 	wg.Wait()
 
+	if err := s.finalization(); err != nil {
+		return fmt.Errorf("finalization: %w", err)
+	}
+
 	return nil
+}
+
+func (s *Dispatcher) finalization() error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	channel, err := s.broker.Chan()
+	if err != nil {
+		return fmt.Errorf("can not create broker channel: %v", err)
+	}
+
+	defer channel.Close()
+
+	if _, err = channel.QueueDeclare(QueueFetching, true, false, false, false, nil); err != nil {
+		return fmt.Errorf("can not declare broker queue: %v", err)
+	}
+
+	if _, err = channel.QueueDeclare(QueueUploading, true, false, false, false, nil); err != nil {
+		return fmt.Errorf("can not declare broker queue: %v", err)
+	}
+
+	var merr *multierror.Error
+	for _, job := range s.Jobs {
+		encoded, err := json.Marshal(Payload{
+			VideoID: job.VideoID,
+			ChatID:  job.ChatID,
+		})
+		if err != nil {
+			merr = multierror.Append(err, merr)
+			continue
+		}
+
+		var queue string
+		if job.Kind == JobKindFetching {
+			queue = QueueFetching
+		} else {
+			queue = QueueUploading
+		}
+
+		if err = channel.Publish(
+			"", queue, false, false, amqp.Publishing{
+				ContentType: "application/json",
+				Body:        encoded,
+			},
+		); err != nil {
+			merr = multierror.Append(err, merr)
+		}
+	}
+
+	return merr.ErrorOrNil()
 }
 
 func (s *Dispatcher) setupTelegramMode(ctx context.Context, telegram *tgbotapi.BotAPI, cfg srvenv.TelegramConfig) (tgbotapi.UpdatesChannel, error) {
@@ -180,7 +257,8 @@ func (s *Dispatcher) handleMessage(ctx context.Context, sender TelegramSender, m
 	if session.Current() == botstate.Default {
 		if err := session.SendEvent(
 			ParseVideoEvent, ParsingCtx{
-				hashFunc:      s.env.HashFunc(),
+				ctx:           ctx,
+				broker:        s.broker,
 				message:       message.Text,
 				chatID:        message.Chat.ID,
 				logger:        logger,
@@ -188,7 +266,7 @@ func (s *Dispatcher) handleMessage(ctx context.Context, sender TelegramSender, m
 				tg:            sender,
 			},
 		); err != nil {
-			logger.Errorf("send session event: %v", err)
+			return fmt.Errorf("send session event: %w", err)
 		}
 	}
 
@@ -242,16 +320,24 @@ func (s *Dispatcher) consumingVideoFetching(ctx context.Context, sender Telegram
 			}
 			continue
 		}
-
+		s.mtx.Lock()
+		s.Jobs = append(s.Jobs, Job{
+			Kind:    JobKindFetching,
+			Payload: Payload{VideoID: payload.VideoID, ChatID: payload.ChatID},
+		})
+		s.mtx.Unlock()
 		if err = s.fetch(ctx, channel, payload); err != nil {
-			logger.Errorf("fetching video: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				logger.Errorf("fetching video: %v", err)
 
-			if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
-				logger.Errorf("send message: %v", err)
+				if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+					logger.Errorf("send message: %v", err)
+					continue
+				}
 				continue
 			}
-			continue
 		}
+		s.deleteJob(payload.VideoID)
 	}
 
 	return nil
@@ -285,13 +371,22 @@ func (s *Dispatcher) consumingVideoUploading(ctx context.Context, sender Telegra
 	for message := range messages {
 		var payload Payload
 		if err = json.Unmarshal(message.Body, &payload); err != nil {
-			logger.Errorf("json unmarshal: %v", err)
-			if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
-				logger.Errorf("send message: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				logger.Errorf("json unmarshal: %v", err)
+				if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+					logger.Errorf("send message: %v", err)
+					continue
+				}
 				continue
 			}
-			continue
 		}
+
+		s.mtx.Lock()
+		s.Jobs = append(s.Jobs, Job{
+			Kind:    JobKindUploading,
+			Payload: Payload{VideoID: payload.VideoID, ChatID: payload.ChatID},
+		})
+		s.mtx.Unlock()
 
 		if err = s.upload(ctx, sender, payload); err != nil {
 			logger.Errorf("uploading video: %v", err)
@@ -302,9 +397,22 @@ func (s *Dispatcher) consumingVideoUploading(ctx context.Context, sender Telegra
 			}
 			continue
 		}
+
+		s.deleteJob(payload.VideoID)
 	}
 
 	return nil
+}
+
+func (s *Dispatcher) deleteJob(videoID string) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	for idx, job := range s.Jobs {
+		if job.VideoID == videoID {
+			s.Jobs = append(s.Jobs[:idx], s.Jobs[idx+1:]...)
+			break
+		}
+	}
 }
 
 func provideFSM() *botstate.StateMachine {
@@ -338,8 +446,8 @@ type Payload struct {
 }
 
 type ParsingCtx struct {
-	hashFunc      func([]byte) ([]byte, error)
-	broker        *amqp.Connection
+	ctx           context.Context
+	broker        AMQPConnection
 	tg            TelegramSender
 	youtubeClient Yotuber
 	logger        *zap.SugaredLogger
@@ -354,7 +462,7 @@ func (p *ParsingAction) Execute(eventCtx botstate.EventContext) botstate.EventTy
 	logger := ctx.logger.Named("ParsingAction.Execute")
 	nextState := botstate.Noop
 
-	video, err := ctx.youtubeClient.GetVideo(ctx.message)
+	video, err := ctx.youtubeClient.GetVideoContext(ctx.ctx, ctx.message)
 	if err != nil {
 		logger.Warnf("parsing video metadata: %v", err)
 		if _, err = ctx.tg.Send(tgbotapi.NewMessage(ctx.chatID, SendingMessageError)); err != nil {
@@ -381,7 +489,7 @@ func (p *ParsingAction) Execute(eventCtx botstate.EventContext) botstate.EventTy
 		return nextState
 	}
 
-	channel, err := ctx.broker.Channel()
+	channel, err := ctx.broker.Chan()
 	if err != nil {
 		logger.Errorf("parsing action, asquire amqp chan: %v", err)
 		if _, err = ctx.tg.Send(tgbotapi.NewMessage(ctx.chatID, SendingMessageError)); err != nil {

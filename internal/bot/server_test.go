@@ -379,7 +379,10 @@ func TestDispatcher_fetch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			deps := newDeps(t)
-			deps.youtubeClient.EXPECT().GetVideo(tc.payload.VideoID).Return(tc.video, tc.videoErr).AnyTimes()
+			deps.youtubeClient.
+				EXPECT().
+				GetVideoContext(gomock.Any(), gomock.Any()).
+				Return(tc.video, tc.videoErr).AnyTimes()
 			deps.metadata.
 				EXPECT().
 				FetchByMetadata(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -411,7 +414,7 @@ func TestDispatcher_fetch(t *testing.T) {
 
 			deps.youtubeClient.
 				EXPECT().
-				GetStream(gomock.Any(), gomock.Any()).
+				GetStreamContext(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(stringReadCloser, int64(stringReader.Len()), tc.streamVideoErr).
 				AnyTimes()
 

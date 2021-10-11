@@ -9,7 +9,7 @@ import (
 
 type RedisConfig struct {
 	Expiration time.Duration `env:"REDIS_EXPIRATION,default=86400s"`
-	Addr       string        `env:"REDIS_ADDR,default=6379"`
+	Addr       string        `env:"REDIS_ADDR,default=localhost:6380"`
 }
 
 type TelegramConfig struct {

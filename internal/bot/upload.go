@@ -93,6 +93,12 @@ func (s *Dispatcher) upload(ctx context.Context, sender TelegramSender, payload 
 		return fmt.Errorf("upload file: %w", err)
 	}
 
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	if !resp.Ok {
 		return fmt.Errorf("can not upload video: %v %v", resp.ErrorCode, resp.Description)
 	}

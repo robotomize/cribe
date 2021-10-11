@@ -39,35 +39,35 @@ func (m *MockYotuber) EXPECT() *MockYotuberMockRecorder {
 	return m.recorder
 }
 
-// GetStream mocks base method.
-func (m *MockYotuber) GetStream(video *v2.Video, format *v2.Format) (io.ReadCloser, int64, error) {
+// GetStreamContext mocks base method.
+func (m *MockYotuber) GetStreamContext(ctx context.Context, video *v2.Video, format *v2.Format) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStream", video, format)
+	ret := m.ctrl.Call(m, "GetStreamContext", ctx, video, format)
 	ret0, _ := ret[0].(io.ReadCloser)
 	ret1, _ := ret[1].(int64)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
 
-// GetStream indicates an expected call of GetStream.
-func (mr *MockYotuberMockRecorder) GetStream(video, format interface{}) *gomock.Call {
+// GetStreamContext indicates an expected call of GetStreamContext.
+func (mr *MockYotuberMockRecorder) GetStreamContext(ctx, video, format interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStream", reflect.TypeOf((*MockYotuber)(nil).GetStream), video, format)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStreamContext", reflect.TypeOf((*MockYotuber)(nil).GetStreamContext), ctx, video, format)
 }
 
-// GetVideo mocks base method.
-func (m *MockYotuber) GetVideo(url string) (*v2.Video, error) {
+// GetVideoContext mocks base method.
+func (m *MockYotuber) GetVideoContext(ctx context.Context, url string) (*v2.Video, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVideo", url)
+	ret := m.ctrl.Call(m, "GetVideoContext", ctx, url)
 	ret0, _ := ret[0].(*v2.Video)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetVideo indicates an expected call of GetVideo.
-func (mr *MockYotuberMockRecorder) GetVideo(url interface{}) *gomock.Call {
+// GetVideoContext indicates an expected call of GetVideoContext.
+func (mr *MockYotuberMockRecorder) GetVideoContext(ctx, url interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVideo", reflect.TypeOf((*MockYotuber)(nil).GetVideo), url)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVideoContext", reflect.TypeOf((*MockYotuber)(nil).GetVideoContext), ctx, url)
 }
 
 // MockMetadataDB is a mock of MetadataDB interface.

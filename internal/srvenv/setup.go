@@ -38,7 +38,13 @@ func Setup(ctx context.Context) (*Env, error) {
 	}
 	env.config = cfg
 
-	env.sessionBackend = ProvideSessionBackendFor(cfg)
+	sessionBackend, err := ProvideSessionBackendFor(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("setup session backend: %w", err)
+	}
+
+	env.sessionBackend = sessionBackend
+
 	telegram, err := SetupTelegram(cfg.Telegram)
 	if err != nil {
 		return nil, fmt.Errorf("setup telegram client: %w", err)
@@ -158,21 +164,25 @@ const (
 	BackendTypeInMemory BackendType = "in_memory"
 )
 
-func ProvideSessionBackendFor(cfg Config) SessionBackend {
+func ProvideSessionBackendFor(cfg Config) (SessionBackend, error) {
 	var backend SessionBackend
 	switch cfg.SessionBackend {
 	case BackendTypeRedis:
-		backend = botstate.NewRedis(
+		redis, err := botstate.NewRedis(
 			botstate.RedisConfig{
 				Expiration: cfg.Redis.Expiration,
 				Addr:       cfg.Redis.Addr,
 			},
 		)
+		if err != nil {
+			return nil, fmt.Errorf("create redis session backend: %w", err)
+		}
+		backend = redis
 	case BackendTypeInMemory:
 		backend = botstate.NewInMemoryBackend()
 	}
 
-	return backend
+	return backend, nil
 }
 
 func SetupAMQP(cfg AMQPConfig) (*amqp.Connection, error) {

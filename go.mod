@@ -9,6 +9,7 @@ require (
 	github.com/go-telegram-bot-api/telegram-bot-api v1.0.1-0.20201020035208-b6df6c273aa8
 	github.com/golang-migrate/migrate/v4 v4.15.0
 	github.com/golang/mock v1.6.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jackc/pgx/v4 v4.13.0
 	github.com/kkdai/youtube/v2 v2.7.4
 	github.com/lib/pq v1.10.2
@@ -26,7 +27,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.10.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect

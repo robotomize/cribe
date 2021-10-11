@@ -17,7 +17,7 @@ import (
 
 func (s *Dispatcher) fetch(ctx context.Context, queue AMQPChannel, payload Payload) error {
 	client := s.youtubeClient
-	video, err := client.GetVideo(payload.VideoID)
+	video, err := client.GetVideoContext(ctx, payload.VideoID)
 	if err != nil {
 		return fmt.Errorf("parsing video metadata: %w", err)
 	}
@@ -43,7 +43,7 @@ func (s *Dispatcher) fetch(ctx context.Context, queue AMQPChannel, payload Paylo
 	metadata, err := s.metadataDB.FetchByMetadata(ctx, payload.VideoID, payload.Mime, payload.Quality)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			stream, _, err := client.GetStream(video, format)
+			stream, _, err := client.GetStreamContext(ctx, video, format)
 			if err != nil {
 				return fmt.Errorf("get video stream: %w", err)
 			}
@@ -51,6 +51,12 @@ func (s *Dispatcher) fetch(ctx context.Context, queue AMQPChannel, payload Paylo
 			buf, err := io.ReadAll(stream)
 			if err != nil {
 				return fmt.Errorf("real stream: %w", err)
+			}
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
 			}
 
 			if err = s.storage.CreateObject(ctx, s.opts.Bucket, video.ID, buf); err != nil {
@@ -116,7 +122,7 @@ func (s *Dispatcher) fetch(ctx context.Context, queue AMQPChannel, payload Paylo
 					return fmt.Errorf("video format not found: %w", err)
 				}
 
-				stream, _, err := client.GetStream(video, format)
+				stream, _, err := client.GetStreamContext(ctx, video, format)
 				if err != nil {
 					return fmt.Errorf("get video stream: %w", err)
 				}
