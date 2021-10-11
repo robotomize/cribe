@@ -26,15 +26,15 @@ import (
 	"path/filepath"
 )
 
-var _ Blob = (*FilesystemStorage)(nil)
+var _ Blob = (*FS)(nil)
 
-type FilesystemStorage struct{}
+type FS struct{}
 
 func NewFilesystemStorage(_ context.Context) (Blob, error) {
-	return &FilesystemStorage{}, nil
+	return &FS{}, nil
 }
 
-func (s *FilesystemStorage) CreateObject(_ context.Context, folder, filename string, contents []byte) error {
+func (s *FS) CreateObject(_ context.Context, folder, filename string, contents []byte) error {
 	pth := filepath.Join(folder, filename)
 	if err := os.WriteFile(pth, contents, 0o600); err != nil {
 		return fmt.Errorf("failed to create object: %w", err)
@@ -43,7 +43,7 @@ func (s *FilesystemStorage) CreateObject(_ context.Context, folder, filename str
 	return nil
 }
 
-func (s *FilesystemStorage) DeleteObject(_ context.Context, folder, filename string) error {
+func (s *FS) DeleteObject(_ context.Context, folder, filename string) error {
 	pth := filepath.Join(folder, filename)
 	if err := os.Remove(pth); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("delete fs object: %w", err)
@@ -52,7 +52,7 @@ func (s *FilesystemStorage) DeleteObject(_ context.Context, folder, filename str
 	return nil
 }
 
-func (s *FilesystemStorage) GetObject(_ context.Context, folder, filename string) ([]byte, error) {
+func (s *FS) GetObject(_ context.Context, folder, filename string) ([]byte, error) {
 	pth := filepath.Join(folder, filename)
 	b, err := os.ReadFile(pth)
 	if err != nil {

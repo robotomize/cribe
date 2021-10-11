@@ -3,11 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 
 	"github.com/robotomize/cribe/internal/bot"
 	"github.com/robotomize/cribe/internal/buildinfo"
 	"github.com/robotomize/cribe/internal/logging"
+	"github.com/robotomize/cribe/internal/server"
 	"github.com/robotomize/cribe/internal/shutdown"
 	"github.com/robotomize/cribe/internal/srvenv"
 )
@@ -36,8 +39,19 @@ func main() {
 
 	defer env.RabbitMQ().Close() //nolint
 
+	mux := http.NewServeMux()
+	mux.Handle("/health", server.HandleHealth(ctx))
+	mux.Handle("/debug/pprof/", http.Handler(http.DefaultServeMux))
+
+	go func() {
+		if err = http.ListenAndServe(cfg.Addr, mux); err != nil {
+			logger.Errorf("listen and serve metrics: %v", err)
+			cancel()
+		}
+	}()
+
 	dispatcher := bot.NewDispatcher(env)
-	if err := dispatcher.Run(ctx, env.Config()); err != nil {
+	if err = dispatcher.Run(ctx, env.Config()); err != nil {
 		logger.Fatalf("bot dispatcher: %v", err)
 	}
 }

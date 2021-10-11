@@ -33,6 +33,7 @@ type StorageConfig struct {
 }
 
 type Config struct {
+	Addr                      string      `env:"ADDR,default=localhost:8080"`
 	LogLevel                  string      `env:"LOG_LEVEL,default=error"`
 	TelegramUpdatesMaxWorkers int         `env:"TELEGRAM_UPDATES_MAX_WORKERS,default=20"`
 	FetchingMaxWorkers        int         `env:"FETCHING_MAX_WORKERS,default=20"`

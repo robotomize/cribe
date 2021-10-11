@@ -9,8 +9,8 @@ require (
 	github.com/go-telegram-bot-api/telegram-bot-api v1.0.1-0.20201020035208-b6df6c273aa8
 	github.com/golang-migrate/migrate/v4 v4.15.0
 	github.com/jackc/pgx/v4 v4.13.0
-	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kkdai/youtube/v2 v2.7.4
+	github.com/lib/pq v1.10.2
 	github.com/nicksnyder/go-i18n/v2 v2.1.2
 	github.com/sethvargo/go-envconfig v0.3.5
 	github.com/streadway/amqp v1.0.0
@@ -35,7 +35,6 @@ require (
 	github.com/jackc/pgtype v1.8.1 // indirect
 	github.com/jackc/puddle v1.1.3 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/lib/pq v1.10.2 // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
