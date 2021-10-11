@@ -14,7 +14,6 @@ import (
 	"github.com/robotomize/cribe/internal/hashing"
 	"github.com/robotomize/cribe/internal/logging"
 	"github.com/robotomize/cribe/internal/srvenv"
-	"github.com/robotomize/cribe/internal/storage"
 	"github.com/robotomize/cribe/pkg/botstate"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
@@ -46,7 +45,7 @@ func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
 		metadataDB: db.NewMetadataRepository(env.DB()),
 		hashFunc:   env.HashFunc(),
 		tg:         env.Telegram(),
-		broker:     env.RabbitMQ(),
+		broker:     NewAMQPBroker(env.AMQP()),
 		storage:    env.Blob(),
 	}
 
@@ -62,9 +61,9 @@ type Dispatcher struct {
 	metadataDB *db.MetadataRepository
 	env        *srvenv.Env
 	hashFunc   hashing.HashFunc
-	tg         *tgbotapi.BotAPI
-	storage    storage.Blob
-	broker     *amqp.Connection
+	tg         Telegram
+	storage    Blob
+	broker     AMQPConnection
 }
 
 func (s *Dispatcher) Run(ctx context.Context, cfg srvenv.Config) error {
@@ -133,7 +132,7 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, cfg srvenv.TelegramC
 			logger.Errorf("Telegram callback failed: %s", info.LastErrorMessage)
 		}
 
-		updates := s.tg.ListenForWebhook("/" + s.tg.Token)
+		updates := s.tg.ListenForWebhook("/" + cfg.Token)
 		go func() {
 			if err = http.ListenAndServe(cfg.WebHookURL, nil); err != nil {
 				logger.Fatalf("Listen and serve http stopped: %v", err)
@@ -208,7 +207,7 @@ func (s *Dispatcher) dispatchingMessages(ctx context.Context, updates tgbotapi.U
 }
 
 func (s *Dispatcher) consumingVideoFetching(ctx context.Context) error {
-	channel, err := s.broker.Channel()
+	channel, err := s.broker.Chan()
 	if err != nil {
 		return fmt.Errorf("can not create broker channel: %w", err)
 	}
@@ -258,7 +257,7 @@ func (s *Dispatcher) consumingVideoFetching(ctx context.Context) error {
 }
 
 func (s *Dispatcher) consumingVideoUploading(ctx context.Context) error {
-	channel, err := s.broker.Channel()
+	channel, err := s.broker.Chan()
 	if err != nil {
 		return fmt.Errorf("can not create broker channel: %w", err)
 	}
@@ -340,7 +339,7 @@ type Payload struct {
 type ParsingCtx struct {
 	hashFunc func([]byte) ([]byte, error)
 	broker   *amqp.Connection
-	tg       *tgbotapi.BotAPI
+	tg       Telegram
 	logger   *zap.SugaredLogger
 	message  string
 	chatID   int64

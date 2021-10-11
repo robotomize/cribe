@@ -38,7 +38,7 @@ func (e Env) SessionBackend() SessionBackend {
 	return e.sessionBackend
 }
 
-func (e Env) RabbitMQ() *amqp.Connection {
+func (e Env) AMQP() *amqp.Connection {
 	return e.rabbitMQ
 }
 

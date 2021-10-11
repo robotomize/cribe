@@ -190,7 +190,9 @@ func SetupAMQP(cfg AMQPConfig) (*amqp.Connection, error) {
 
 func SetupTelegram(cfg TelegramConfig) (*tgbotapi.BotAPI, error) {
 	if cfg.ProxyAddr != "" {
-		client, err := tgbotapi.NewBotAPIWithAPIEndpoint(cfg.Token, fmt.Sprintf("%s://%s", cfg.ProxySchema, cfg.ProxyAddr)+"/bot%s/%s")
+		client, err := tgbotapi.NewBotAPIWithAPIEndpoint(
+			cfg.Token, fmt.Sprintf("%s://%s", cfg.ProxySchema, cfg.ProxyAddr)+"/bot%s/%s",
+		)
 		if err != nil {
 			return nil, fmt.Errorf("unable create telegram client with proxy: %w", err)
 		}

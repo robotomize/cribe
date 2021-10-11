@@ -37,7 +37,7 @@ func main() {
 	logger := logging.NewLogger(cfg.LogLevel)
 	ctx = logging.WithLogger(ctx, logger)
 
-	defer env.RabbitMQ().Close() //nolint
+	defer env.AMQP().Close() //nolint
 
 	mux := http.NewServeMux()
 	mux.Handle("/health", server.HandleHealth(ctx))

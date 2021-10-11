@@ -22,7 +22,7 @@ func (s *Dispatcher) upload(ctx context.Context, payload Payload) error {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
-	channel, err := s.broker.Channel()
+	channel, err := s.broker.Chan()
 	if err != nil {
 		return fmt.Errorf("can not create broker channel: %w", err)
 	}

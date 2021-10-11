@@ -16,7 +16,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
-func (s *Dispatcher) fetch(ctx context.Context, queue *amqp.Channel, payload Payload) error {
+func (s *Dispatcher) fetch(ctx context.Context, queue AMQPChannel, payload Payload) error {
 	client := youtube.Client{}
 	video, err := client.GetVideo(payload.VideoID)
 	if err != nil {
