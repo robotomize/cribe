@@ -16,31 +16,31 @@ import (
 	amqp "github.com/streadway/amqp"
 )
 
-// MockYotuber is a mock of Yotuber interface.
-type MockYotuber struct {
+// MockYoutubeClient is a mock of YoutubeClient interface.
+type MockYoutubeClient struct {
 	ctrl     *gomock.Controller
-	recorder *MockYotuberMockRecorder
+	recorder *MockYoutubeClientMockRecorder
 }
 
-// MockYotuberMockRecorder is the mock recorder for MockYotuber.
-type MockYotuberMockRecorder struct {
-	mock *MockYotuber
+// MockYoutubeClientMockRecorder is the mock recorder for MockYoutubeClient.
+type MockYoutubeClientMockRecorder struct {
+	mock *MockYoutubeClient
 }
 
-// NewMockYotuber creates a new mock instance.
-func NewMockYotuber(ctrl *gomock.Controller) *MockYotuber {
-	mock := &MockYotuber{ctrl: ctrl}
-	mock.recorder = &MockYotuberMockRecorder{mock}
+// NewMockYoutubeClient creates a new mock instance.
+func NewMockYoutubeClient(ctrl *gomock.Controller) *MockYoutubeClient {
+	mock := &MockYoutubeClient{ctrl: ctrl}
+	mock.recorder = &MockYoutubeClientMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockYotuber) EXPECT() *MockYotuberMockRecorder {
+func (m *MockYoutubeClient) EXPECT() *MockYoutubeClientMockRecorder {
 	return m.recorder
 }
 
 // GetStreamContext mocks base method.
-func (m *MockYotuber) GetStreamContext(ctx context.Context, video *v2.Video, format *v2.Format) (io.ReadCloser, int64, error) {
+func (m *MockYoutubeClient) GetStreamContext(ctx context.Context, video *v2.Video, format *v2.Format) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStreamContext", ctx, video, format)
 	ret0, _ := ret[0].(io.ReadCloser)
@@ -50,13 +50,13 @@ func (m *MockYotuber) GetStreamContext(ctx context.Context, video *v2.Video, for
 }
 
 // GetStreamContext indicates an expected call of GetStreamContext.
-func (mr *MockYotuberMockRecorder) GetStreamContext(ctx, video, format interface{}) *gomock.Call {
+func (mr *MockYoutubeClientMockRecorder) GetStreamContext(ctx, video, format interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStreamContext", reflect.TypeOf((*MockYotuber)(nil).GetStreamContext), ctx, video, format)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStreamContext", reflect.TypeOf((*MockYoutubeClient)(nil).GetStreamContext), ctx, video, format)
 }
 
 // GetVideoContext mocks base method.
-func (m *MockYotuber) GetVideoContext(ctx context.Context, url string) (*v2.Video, error) {
+func (m *MockYoutubeClient) GetVideoContext(ctx context.Context, url string) (*v2.Video, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetVideoContext", ctx, url)
 	ret0, _ := ret[0].(*v2.Video)
@@ -65,9 +65,9 @@ func (m *MockYotuber) GetVideoContext(ctx context.Context, url string) (*v2.Vide
 }
 
 // GetVideoContext indicates an expected call of GetVideoContext.
-func (mr *MockYotuberMockRecorder) GetVideoContext(ctx, url interface{}) *gomock.Call {
+func (mr *MockYoutubeClientMockRecorder) GetVideoContext(ctx, url interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVideoContext", reflect.TypeOf((*MockYotuber)(nil).GetVideoContext), ctx, url)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVideoContext", reflect.TypeOf((*MockYoutubeClient)(nil).GetVideoContext), ctx, url)
 }
 
 // MockMetadataDB is a mock of MetadataDB interface.

@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/kkdai/youtube/v2"
 	"github.com/robotomize/cribe/internal/db"
-	"github.com/robotomize/cribe/internal/hashing"
 	"github.com/robotomize/cribe/internal/logging"
 	"github.com/robotomize/cribe/internal/srvenv"
 	"github.com/robotomize/cribe/pkg/botstate"
@@ -62,7 +61,6 @@ func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
 		},
 		env:           env,
 		metadataDB:    db.NewMetadataRepository(env.DB()),
-		hashFunc:      env.HashFunc(),
 		youtubeClient: &youtube.Client{},
 		broker:        NewAMQPBroker(env.AMQP()),
 		storage:       env.Blob(),
@@ -77,11 +75,11 @@ func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
 }
 
 type Dispatcher struct {
-	opts          Options
+	env  *srvenv.Env
+	opts Options
+
 	metadataDB    MetadataDB
-	env           *srvenv.Env
-	hashFunc      hashing.HashFunc
-	youtubeClient Yotuber
+	youtubeClient YoutubeClient
 	storage       Blob
 	broker        AMQPConnection
 
@@ -449,7 +447,7 @@ type ParsingCtx struct {
 	ctx           context.Context
 	broker        AMQPConnection
 	tg            TelegramSender
-	youtubeClient Yotuber
+	youtubeClient YoutubeClient
 	logger        *zap.SugaredLogger
 	message       string
 	chatID        int64

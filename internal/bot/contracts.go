@@ -13,7 +13,7 @@ import (
 var _ io.ReadCloser
 
 type (
-	Yotuber interface {
+	YoutubeClient interface {
 		GetVideoContext(ctx context.Context, url string) (*youtube.Video, error)
 		GetStreamContext(ctx context.Context, video *youtube.Video, format *youtube.Format) (io.ReadCloser, int64, error)
 	}
