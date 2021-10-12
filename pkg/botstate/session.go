@@ -7,6 +7,12 @@ import (
 	"fmt"
 )
 
+var (
+	ErrEventRejected   = errors.New("event rejected")
+	ErrSessionNotFound = errors.New("not found")
+	ErrStateNotFound   = errors.New("not found")
+)
+
 type Backend interface {
 	Get(ctx context.Context, k string) ([]byte, error)
 	Set(ctx context.Context, k string, v []byte) error
