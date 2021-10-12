@@ -5,7 +5,7 @@ services:
     container_name: postgres_cribe
     restart: always
     volumes:
-      - ./db:/var/lib/postgresql/data
+      - ./var/lib/cribedb:/var/lib/postgresql/data
     ports:
       - "5430:5432"
     environment:

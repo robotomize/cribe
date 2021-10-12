@@ -438,14 +438,14 @@ func newDeps(t testing.TB) *deps {
 		amqp:          NewMockAMQPConnection(ctrl),
 		channel:       NewMockAMQPChannel(ctrl),
 		metadata:      NewMockMetadataDB(ctrl),
-		youtubeClient: NewMockYotuber(ctrl),
+		youtubeClient: NewMockYoutubeClient(ctrl),
 		storage:       NewMockBlob(ctrl),
 	}
 }
 
 type deps struct {
 	ctrl          *gomock.Controller
-	youtubeClient *MockYotuber
+	youtubeClient *MockYoutubeClient
 	amqp          *MockAMQPConnection
 	channel       *MockAMQPChannel
 	metadata      *MockMetadataDB

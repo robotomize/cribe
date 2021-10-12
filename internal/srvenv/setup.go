@@ -14,7 +14,6 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"github.com/robotomize/cribe/internal/db"
-	"github.com/robotomize/cribe/internal/hashing"
 	"github.com/robotomize/cribe/internal/storage"
 	"github.com/robotomize/cribe/pkg/botstate"
 	"github.com/sethvargo/go-envconfig"
@@ -60,10 +59,6 @@ func Setup(ctx context.Context) (*Env, error) {
 		return nil, fmt.Errorf("setup storage: %w", err)
 	}
 
-	hashFn, err := ProvideHashingFunc(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("setup hash func: %w", err)
-	}
 	database, err := db.New(&cfg.DB)
 	if err != nil {
 		return nil, fmt.Errorf("setup db: %w", err)
@@ -74,7 +69,6 @@ func Setup(ctx context.Context) (*Env, error) {
 	}
 
 	env.db = database
-	env.hashFunc = hashFn
 	env.blob = blob
 	env.telegram = telegram
 	env.rabbitMQ = rabbitMQConn
@@ -113,25 +107,6 @@ func migrationUp(dsn string) error {
 	}
 
 	return nil
-}
-
-const (
-	HashingFuncMD5 = "md5"
-	HashingSha1    = "sha1"
-)
-
-func ProvideHashingFunc(cfg Config) (hashing.HashFunc, error) {
-	var f hashing.HashFunc
-	switch cfg.HashingFunc {
-	case HashingSha1:
-		f = hashing.SHA1HashFunc()
-	case HashingFuncMD5:
-		f = hashing.MD5HashFunc()
-	default:
-		return f, errors.New("unknown hashing function")
-	}
-
-	return f, nil
 }
 
 const (
