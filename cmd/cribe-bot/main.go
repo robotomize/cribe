@@ -10,7 +10,6 @@ import (
 	"github.com/robotomize/cribe/internal/bot"
 	"github.com/robotomize/cribe/internal/buildinfo"
 	"github.com/robotomize/cribe/internal/logging"
-	"github.com/robotomize/cribe/internal/server"
 	"github.com/robotomize/cribe/internal/shutdown"
 	"github.com/robotomize/cribe/internal/srvenv"
 )
@@ -40,7 +39,11 @@ func main() {
 	defer env.AMQP().Close() //nolint
 
 	mux := http.NewServeMux()
-	mux.Handle("/health", server.HandleHealth(ctx))
+	mux.HandleFunc(
+		"/health", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, `{"status": "ok"}`)
+		},
+	)
 	mux.Handle("/debug/pprof/", http.Handler(http.DefaultServeMux))
 
 	go func() {
