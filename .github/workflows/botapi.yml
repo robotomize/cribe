@@ -1,4 +1,4 @@
-name: scheduler
+name: build bot api
 
 on:
   push:
@@ -12,7 +12,6 @@ on:
 
 jobs:
   build:
-    needs: build-verify
     runs-on: ubuntu-latest
 
     steps:
