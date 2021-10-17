@@ -14,6 +14,9 @@ COPY ./telegram-bot-api ./telegram-bot-api
 
 WORKDIR /usr/src/telegram-bot-api/telegram-bot-api/build
 
+RUN ls -la
+RUN ls -la ../
+
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=.. .. \
  && cmake --build . --target install -j "$(nproc)" \
  && strip /usr/src/telegram-bot-api/telegram-bot-api/bin/telegram-bot-api
