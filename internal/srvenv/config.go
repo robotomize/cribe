@@ -36,8 +36,8 @@ type Config struct {
 	Addr                      string      `env:"ADDR,default=localhost:8080"`
 	LogLevel                  string      `env:"LOG_LEVEL,default=error"`
 	TelegramUpdatesMaxWorkers int         `env:"TELEGRAM_UPDATES_MAX_WORKERS,default=20"`
-	FetchingMaxWorkers        int         `env:"FETCHING_MAX_WORKERS,default=20"`
-	UploadingMaxWorkers       int         `env:"UPLOADING_MAX_WORKERS,default=20"`
+	FetchingMaxWorkers        int         `env:"FETCHING_MAX_WORKERS,default=10"`
+	UploadingMaxWorkers       int         `env:"UPLOADING_MAX_WORKERS,default=5"`
 	HashingFunc               string      `env:"FILE_HASHING_FUNC,default=md5"`
 	SessionBackend            BackendType `env:"SESSION_BACKEND_TYPE,default=redis"`
 	DB                        db.Config

@@ -36,6 +36,14 @@ type Session struct {
 	backend  Backend
 }
 
+func (s *Session) Clean(ctx context.Context) error {
+	if err := s.backend.Delete(ctx, s.identity); err != nil {
+		return fmt.Errorf("unable delete state: %w", err)
+	}
+
+	return nil
+}
+
 // Flush save fsm state to backend
 func (s *Session) Flush(ctx context.Context) error {
 	encoded, err := json.Marshal(StateEncoded{Current: s.curr, Previous: s.prev})

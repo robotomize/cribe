@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/enescakir/emoji"
 	"net/http"
 	"strconv"
 	"sync"
@@ -268,14 +269,39 @@ func (s *Dispatcher) handleMessage(ctx context.Context, sender TelegramSender, m
 		}
 	}
 
+	if err := session.Flush(ctx); err != nil {
+		return fmt.Errorf("session flush: %w", err)
+	}
+
 	return nil
 }
 
+const (
+	StartCommandText = "start"
+)
+
+var (
+	StartCommandMessage = "Hi, this is a bot" + emoji.Robot.String() + " for downloading videos from youtube\n\n" +
+		"Just send a link to the youtube video and follow the further instructions\n" +
+		"\n*source code:* [github](https://github.com/robotomize/cribe)"
+)
+
 func (s *Dispatcher) dispatchingMessages(ctx context.Context, sender TelegramSender, updates tgbotapi.UpdatesChannel) {
 	logger := logging.FromContext(ctx).Named("Dispatcher.dispatchingMessages")
-
 	for update := range updates {
 		if update.Message != nil {
+			if update.Message.IsCommand() {
+				cmd := update.Message.Command()
+				if cmd == StartCommandText {
+					config := tgbotapi.NewMessage(update.Message.Chat.ID, StartCommandMessage)
+					config.ParseMode = tgbotapi.ModeMarkdown
+					if _, err := sender.Send(config); err != nil {
+						logger.Errorf("send message: %v", err)
+					}
+				}
+				return
+			}
+
 			if err := s.handleMessage(ctx, sender, update.Message); err != nil {
 				logger.Errorf("handle telegram message: %v", err)
 			}
@@ -318,12 +344,14 @@ func (s *Dispatcher) consumingVideoFetching(ctx context.Context, sender Telegram
 			}
 			continue
 		}
+
 		s.mtx.Lock()
 		s.Jobs = append(s.Jobs, Job{
 			Kind:    JobKindFetching,
 			Payload: Payload{VideoID: payload.VideoID, ChatID: payload.ChatID},
 		})
 		s.mtx.Unlock()
+
 		if err = s.fetch(ctx, channel, payload); err != nil {
 			if !errors.Is(err, context.Canceled) {
 				logger.Errorf("fetching video: %v", err)
@@ -334,8 +362,9 @@ func (s *Dispatcher) consumingVideoFetching(ctx context.Context, sender Telegram
 				}
 				continue
 			}
+			continue
 		}
-		s.deleteJob(payload.VideoID)
+		s.deleteJob(payload.VideoID, JobKindFetching)
 	}
 
 	return nil
@@ -377,6 +406,7 @@ func (s *Dispatcher) consumingVideoUploading(ctx context.Context, sender Telegra
 				}
 				continue
 			}
+			continue
 		}
 
 		s.mtx.Lock()
@@ -387,26 +417,28 @@ func (s *Dispatcher) consumingVideoUploading(ctx context.Context, sender Telegra
 		s.mtx.Unlock()
 
 		if err = s.upload(ctx, sender, payload); err != nil {
-			logger.Errorf("uploading video: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				logger.Errorf("uploading video: %v", err)
 
-			if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
-				logger.Errorf("send message: %v", err)
+				if _, err = sender.Send(tgbotapi.NewMessage(payload.ChatID, SendingMessageError)); err != nil {
+					logger.Errorf("send message: %v", err)
+					continue
+				}
 				continue
 			}
 			continue
 		}
-
-		s.deleteJob(payload.VideoID)
+		s.deleteJob(payload.VideoID, JobKindUploading)
 	}
 
 	return nil
 }
 
-func (s *Dispatcher) deleteJob(videoID string) {
+func (s *Dispatcher) deleteJob(videoID string, kind JobKind) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	for idx, job := range s.Jobs {
-		if job.VideoID == videoID {
+		if job.VideoID == videoID && job.Kind == kind {
 			s.Jobs = append(s.Jobs[:idx], s.Jobs[idx+1:]...)
 			break
 		}
@@ -417,6 +449,7 @@ func provideFSM() *botstate.StateMachine {
 	return botstate.NewStateMachine(
 		botstate.States{
 			botstate.Default: botstate.State{
+				Action: &DefaultAction{},
 				Events: botstate.Events{
 					ParseVideoEvent: ParsingVideoState,
 				},
@@ -424,7 +457,7 @@ func provideFSM() *botstate.StateMachine {
 			ParsingVideoState: botstate.State{
 				Action: &ParsingAction{},
 				Events: botstate.Events{
-					ParseVideoEvent: botstate.Default,
+					GoToDefaultEvent: botstate.Default,
 				},
 			},
 		},
@@ -433,6 +466,7 @@ func provideFSM() *botstate.StateMachine {
 
 const (
 	ParseVideoEvent   botstate.EventType = "parse_video"
+	GoToDefaultEvent  botstate.EventType = "go_to_default"
 	ParsingVideoState botstate.StateType = "parsing_video"
 )
 
@@ -441,6 +475,12 @@ type Payload struct {
 	Quality string `json:"quality"`
 	VideoID string `json:"video_id"`
 	ChatID  int64  `json:"chat_id"`
+}
+
+type DefaultAction struct{}
+
+func (p *DefaultAction) Execute(_ botstate.EventContext) botstate.EventType {
+	return botstate.Noop
 }
 
 type ParsingCtx struct {
@@ -458,7 +498,7 @@ type ParsingAction struct{}
 func (p *ParsingAction) Execute(eventCtx botstate.EventContext) botstate.EventType {
 	ctx := eventCtx.(ParsingCtx)
 	logger := ctx.logger.Named("ParsingAction.Execute")
-	nextState := botstate.Noop
+	nextState := GoToDefaultEvent
 
 	video, err := ctx.youtubeClient.GetVideoContext(ctx.ctx, ctx.message)
 	if err != nil {
