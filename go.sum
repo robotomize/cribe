@@ -564,8 +564,8 @@ github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0/go.mod h1:qq
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/robotomize/telegram-bot-api v1.0.1-0.20211011211313-ce26e93d1e9e h1:z2O4QNZ8De5ejlIazlCFmVRqoKqSE8DLnV87xvaoxxk=
 github.com/robotomize/telegram-bot-api v1.0.1-0.20211011211313-ce26e93d1e9e/go.mod h1:lDm2E64X4OjFdBUA4hlN4mEvbSitvhJdKw7rsA8KHgI=
-github.com/robotomize/youtube/v2 v2.7.5-0.20211004084108-fc2d2467347a h1:eaiv6dnUTB9DwJUm20ipWqHSA7ycmIsDRDSKDR6jfRE=
-github.com/robotomize/youtube/v2 v2.7.5-0.20211004084108-fc2d2467347a/go.mod h1:XMmc0kbC9q/gPc6i881DjFYK53CuAAFrg1cx6Wn15F0=
+github.com/robotomize/youtube/v2 v2.7.5-0.20211014061251-64621d430eaa h1:LigZRQdxjRpUFvqrv8W7RgHhRY9V8uf5vy3O4o9J3EU=
+github.com/robotomize/youtube/v2 v2.7.5-0.20211014061251-64621d430eaa/go.mod h1:XMmc0kbC9q/gPc6i881DjFYK53CuAAFrg1cx6Wn15F0=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
 github.com/rogpeppe/go-internal v1.1.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=

@@ -33,7 +33,9 @@ func main() {
 
 	cfg := env.Config()
 
-	logger := logging.NewLogger(cfg.LogLevel)
+	logger := logging.NewLogger(cfg.LogLevel).
+		With("build_tag", buildinfo.Info.Tag()).
+		With("build_time", buildinfo.Info.Time())
 	ctx = logging.WithLogger(ctx, logger)
 
 	defer env.AMQP().Close() //nolint
@@ -55,6 +57,7 @@ func main() {
 
 	telegram := env.Telegram()
 	dispatcher := bot.NewDispatcher(env)
+	logger.Info("cribe-bot started")
 	if err = dispatcher.Run(ctx, telegram, env.Config()); err != nil {
 		logger.Fatalf("bot dispatcher: %v", err)
 	}

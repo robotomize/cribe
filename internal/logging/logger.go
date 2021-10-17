@@ -17,28 +17,19 @@ var (
 	defaultLoggerOnce sync.Once
 )
 
-const (
-	timestamp    = "ts"
-	severity     = "severity"
-	logger       = "logger"
-	caller       = "caller"
-	message      = "message"
-	stacktrace   = "stacktrace"
-	encodingJSON = "json"
-)
-
 var outputStderr = []string{"stderr"}
 
 var encoderConfig = zapcore.EncoderConfig{
-	TimeKey:        timestamp,
-	LevelKey:       severity,
-	NameKey:        logger,
-	CallerKey:      caller,
-	MessageKey:     message,
-	StacktraceKey:  stacktrace,
+	TimeKey:        "ts",
+	LevelKey:       "level",
+	NameKey:        "logger",
+	CallerKey:      "caller",
+	FunctionKey:    zapcore.OmitKey,
+	MessageKey:     "msg",
+	StacktraceKey:  "stacktrace",
 	LineEnding:     zapcore.DefaultLineEnding,
-	EncodeLevel:    zapcore.CapitalColorLevelEncoder,
-	EncodeTime:     zapcore.RFC3339TimeEncoder,
+	EncodeLevel:    zapcore.LowercaseLevelEncoder,
+	EncodeTime:     zapcore.EpochTimeEncoder,
 	EncodeDuration: zapcore.SecondsDurationEncoder,
 	EncodeCaller:   zapcore.ShortCallerEncoder,
 }
@@ -46,6 +37,7 @@ var encoderConfig = zapcore.EncoderConfig{
 func NewLogger(level string) *zap.SugaredLogger {
 	zapLevel := convertLevel(level)
 
+	zap.NewProductionEncoderConfig()
 	config := &zap.Config{
 		Level:       zap.NewAtomicLevelAt(zapLevel),
 		Development: false,
@@ -53,7 +45,7 @@ func NewLogger(level string) *zap.SugaredLogger {
 			Initial:    250,
 			Thereafter: 250,
 		},
-		Encoding:         encodingJSON,
+		Encoding:         "json",
 		EncoderConfig:    encoderConfig,
 		OutputPaths:      outputStderr,
 		ErrorOutputPaths: outputStderr,

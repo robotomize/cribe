@@ -418,10 +418,10 @@ func provideFSM() *botstate.StateMachine {
 		botstate.States{
 			botstate.Default: botstate.State{
 				Events: botstate.Events{
-					ParseVideoEvent: FetchingState,
+					ParseVideoEvent: ParsingVideoState,
 				},
 			},
-			FetchingState: botstate.State{
+			ParsingVideoState: botstate.State{
 				Action: &ParsingAction{},
 				Events: botstate.Events{
 					ParseVideoEvent: botstate.Default,
@@ -432,8 +432,8 @@ func provideFSM() *botstate.StateMachine {
 }
 
 const (
-	ParseVideoEvent botstate.EventType = "parse_url"
-	FetchingState   botstate.StateType = "parsing_url"
+	ParseVideoEvent   botstate.EventType = "parse_video"
+	ParsingVideoState botstate.StateType = "parsing_video"
 )
 
 type Payload struct {
