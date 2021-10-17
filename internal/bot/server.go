@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/enescakir/emoji"
 	"net/http"
 	"strconv"
 	"sync"
 
+	"github.com/enescakir/emoji"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/hashicorp/go-multierror"
 	"github.com/kkdai/youtube/v2"
@@ -280,11 +280,9 @@ const (
 	StartCommandText = "start"
 )
 
-var (
-	StartCommandMessage = "Hi, this is a bot" + emoji.Robot.String() + " for downloading videos from youtube\n\n" +
-		"Just send a link to the youtube video and follow the further instructions\n" +
-		"\n*source code:* [github](https://github.com/robotomize/cribe)"
-)
+var StartCommandMessage = "Hi, this is a bot" + emoji.Robot.String() + " for downloading videos from youtube\n\n" +
+	"Just send a link to the youtube video and follow the further instructions\n" +
+	"\n*source code:* [github](https://github.com/robotomize/cribe)"
 
 func (s *Dispatcher) dispatchingMessages(ctx context.Context, sender TelegramSender, updates tgbotapi.UpdatesChannel) {
 	logger := logging.FromContext(ctx).Named("Dispatcher.dispatchingMessages")
