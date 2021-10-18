@@ -9,7 +9,7 @@ ENV GO111MODULE=on \
 
 WORKDIR /src
 
-COPY . .
+COPY .. .
 
 ENV BUILD_INFO_PACKAGE=github.com/cribe/internal/buildinfo
 ENV BUILD_NAME=cribe-bot
@@ -34,4 +34,4 @@ COPY --from=builder /data /data
 
 VOLUME /data
 
-ENTRYPOINT ["/app/cribebot"]
+ENTRYPOINT ["/bin/cribebot"]

@@ -1,12 +1,6 @@
 name: Build telegram proxy bot api
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
   schedule:
     - cron: '0 0 */7 * *'
 
@@ -56,7 +50,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./BotApiDockerfile
+          file: ./docker/BotApiDockerfile
           push: true
           tags: |
             robotomize/tgbotapi:latest

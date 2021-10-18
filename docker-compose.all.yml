@@ -39,8 +39,8 @@ services:
     hostname: tgbotapi
     restart: always
     environment:
-      TELEGRAM_API_ID: API_ID
-      TELEGRAM_API_HASH: API_HASH
+      TELEGRAM_API_ID: 95824
+      TELEGRAM_API_HASH: 399fa4e0b2820df3ba669e4536a3e913
     command:
       # set working directory for files
       - --dir=/var/lib/telegram-bot-api
@@ -60,11 +60,11 @@ services:
     restart: always
     environment:
       ADDR: 8080
-      TELEGRAM_TOKEN: YOURTOKENHERE
-      TELEGRAM_PROXY_SCHEMA: http
-      TELEGRAM_PROXY_ADDR: 127.0.0.1:8081
-      TELEGRAM_WEBHOOK_URL: https://cribe.live/
-      TELEGRAM_WEBHOOK_ADDR: :8888
+      TELEGRAM_TOKEN: 1941592046:AAHd-DggP-i3U3TJiVw7lX5Neji3wthLvl4
+#      TELEGRAM_PROXY_SCHEMA: http
+#      TELEGRAM_PROXY_ADDR: 127.0.0.1:8081
+#      TELEGRAM_WEBHOOK_URL: https://cribe.live/
+#      TELEGRAM_WEBHOOK_ADDR: :8888
       LOG_LEVEL: info
     ports:
       - "8080:8080"
