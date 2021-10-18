@@ -91,7 +91,7 @@ func migrationUp(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("postgres instance: %w", err)
 	}
-
+	//migrations/
 	m, err := migrate.NewWithDatabaseInstance(
 		"file:///"+filepath.Join(basePath, "migrations"), "postgres", driver,
 	)

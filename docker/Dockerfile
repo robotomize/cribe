@@ -9,7 +9,7 @@ ENV GO111MODULE=on \
 
 WORKDIR /src
 
-COPY .. .
+COPY . .
 
 ENV BUILD_INFO_PACKAGE=github.com/cribe/internal/buildinfo
 ENV BUILD_NAME=cribe-bot
@@ -25,6 +25,7 @@ RUN go build \
 RUN strip /bin/cribebot
 RUN upx -q -9 /bin/cribebot
 
+RUN cp -r migrations /bin
 RUN mkdir /data
 
 FROM scratch

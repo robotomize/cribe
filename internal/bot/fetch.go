@@ -59,8 +59,12 @@ func (s *Dispatcher) fetch(ctx context.Context, queue AMQPChannel, payload Paylo
 			default:
 			}
 
-			if err = s.storage.CreateObject(ctx, s.opts.Bucket, video.ID, buf); err != nil {
-				return fmt.Errorf("create object to storage: %w", err)
+			if _, err := s.storage.GetObject(ctx, s.opts.Bucket, video.ID); err != nil {
+				if errors.Is(err, storage.ErrNotFound) {
+					if err = s.storage.CreateObject(ctx, s.opts.Bucket, video.ID, buf); err != nil {
+						return fmt.Errorf("create object to storage: %w", err)
+					}
+				}
 			}
 
 			// sort preview by telegram constrain
