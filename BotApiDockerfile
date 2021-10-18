@@ -10,7 +10,7 @@ RUN apk --no-cache add \
 
 WORKDIR /usr/src/telegram-bot-api
 
-COPY telegram-bot-api .
+COPY ./telegram-bot-api .
 
 RUN ls -la 
 
