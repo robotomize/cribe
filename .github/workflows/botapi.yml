@@ -1,4 +1,4 @@
-name: build bot api
+name: Build telegram proxy bot api
 
 on:
   push:

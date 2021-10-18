@@ -1,4 +1,4 @@
-name: Cribe
+name: Commit cribe
 on:
   push:
     branches:
