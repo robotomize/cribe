@@ -8,7 +8,6 @@ on:
 
 jobs:
   test:
-    needs: pre-build
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous builds
@@ -37,7 +36,6 @@ jobs:
       - name: Unit tests
         run: go test -count=1 -race -timeout=10m ./... -coverprofile=coverage.out
   lint:
-    needs: pre-build
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous builds
