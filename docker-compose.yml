@@ -38,7 +38,7 @@ services:
     hostname: cribe-bot
     build:
       context: .
-      dockerfile: ./docker/Dockerfile
+      dockerfile: Dockerfile
 
     restart: always
     ports:
