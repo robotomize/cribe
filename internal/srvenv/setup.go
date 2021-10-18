@@ -2,15 +2,8 @@ package srvenv
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"github.com/robotomize/cribe/internal/db"
@@ -64,49 +57,12 @@ func Setup(ctx context.Context) (*Env, error) {
 		return nil, fmt.Errorf("setup db: %w", err)
 	}
 
-	if err = migrationUp(cfg.DB.ConnectionURL()); err != nil {
-		return nil, fmt.Errorf("setup migrations: %w", err)
-	}
-
 	env.db = database
 	env.blob = blob
 	env.telegram = telegram
 	env.rabbitMQ = rabbitMQConn
 
 	return &env, nil
-}
-
-func migrationUp(dsn string) error {
-	basePath, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("os.Getwd: %w", err)
-	}
-
-	conn, err := sql.Open("postgres", dsn)
-	if err != nil {
-		return fmt.Errorf("sql open: %w", err)
-	}
-
-	driver, err := postgres.WithInstance(conn, &postgres.Config{})
-	if err != nil {
-		return fmt.Errorf("postgres instance: %w", err)
-	}
-
-	m, err := migrate.NewWithDatabaseInstance(
-		"file:///"+filepath.Join(basePath, "migrations"), "postgres", driver,
-	)
-	if err != nil {
-		return fmt.Errorf("migrate db instance: %w", err)
-	}
-
-	if err = m.Up(); err != nil {
-		if errors.Is(err, migrate.ErrNoChange) {
-			return nil
-		}
-		return fmt.Errorf("migration up: %w", err)
-	}
-
-	return nil
 }
 
 const (
