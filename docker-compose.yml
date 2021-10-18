@@ -1,0 +1,86 @@
+version: "3.1"
+services:
+  postgres:
+    image: postgres:13-alpine
+    container_name: postgres_cribe
+    restart: always
+    volumes:
+      - /var/lib/cribedb:/var/lib/postgresql/data
+    ports:
+      - "5430:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cribe
+    networks:
+      - cribe-net
+
+  redis:
+    image: redis:latest
+    container_name: redis_cribe
+    ports:
+      - "6380:6379"
+    networks:
+      - cribe-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: message-broker
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    networks:
+      - cribe-net
+
+  telegram-bot-api:
+    image: robotomize/tgbotapi:latest
+    container_name: telegram-bot-api
+    hostname: tgbotapi
+    restart: always
+    environment:
+      TELEGRAM_API_ID: YOUR-ID
+      TELEGRAM_API_HASH: YOUR-HASH
+    command:
+      # set working directory for files
+      - --dir=/var/lib/telegram-bot-api
+      # enable logging, disable in production
+      - --verbosity=1
+    volumes:
+      - /var/tgbotapi:/var/lib/telegram-bot-api
+    ports:
+      - "8081:8081"
+    networks:
+      - cribe-net
+
+  cribe-bot:
+    image: robotomize/cribe:latest
+    container_name: cribe-bot
+    hostname: cribe-bot
+    restart: always
+    environment:
+      ADDR: :8282
+      DB_HOST: postgres
+      DB_PORT: 5432
+      AMQP_SERVER_URL: amqp://guest:guest@rabbitmq:5672/
+      REDIS_ADDR: redis:6379
+      TELEGRAM_TOKEN: YOUR-TOKEN
+      TELEGRAM_PROXY_SCHEMA: http
+      TELEGRAM_PROXY_ADDR: telegram-bot-api:8081
+      #      TELEGRAM_WEBHOOK_URL: https://cribe.live/
+      #      TELEGRAM_WEBHOOK_ADDR: :8888
+      LOG_LEVEL: info
+    ports:
+      - "8080:8080"
+    networks:
+      - cribe-net
+    depends_on:
+      - postgres
+      - rabbitmq
+      - telegram-bot-api
+
+
+networks:
+  cribe-net:
+    driver: bridge
+

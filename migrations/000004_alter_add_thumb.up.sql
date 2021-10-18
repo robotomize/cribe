@@ -1,0 +1,4 @@
+BEGIN;
+ALTER TABLE metadata
+    ADD COLUMN thumb TEXT;
+END;

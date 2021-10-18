@@ -1,0 +1,4 @@
+BEGIN;
+ALTER TABLE metadata
+    ADD COLUMN params JSON;
+END;

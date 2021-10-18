@@ -1,0 +1,4 @@
+BEGIN;
+ALTER TABLE metadata
+    DROP COLUMN thumb;
+END;
