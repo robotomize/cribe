@@ -9,7 +9,7 @@ ENV GO111MODULE=on \
 
 WORKDIR /src
 
-COPY docker .
+COPY . .
 
 ENV BUILD_INFO_PACKAGE=github.com/cribe/internal/buildinfo
 ENV BUILD_NAME=cribe-bot
