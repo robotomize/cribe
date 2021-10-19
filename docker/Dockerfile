@@ -16,9 +16,8 @@ ENV BUILD_NAME=cribe-bot
 
 RUN go build \
   -trimpath \
-  -ldflags "-s -w -X $BUILD_INFO_PACKAGE.BuildTag=$(git describe --tags --abbrev=0) -X $BUILD_INFO_PACKAGE.Time=$(date -u '+%Y-%m-%d-%H:%M') -X $BUILD_INFO_PACKAGE.Name=$BUILD_NAME -extldflags '-static'" \
+  -ldflags "-s -w -X ${BUILD_INFO_PACKAGE}.BuildTag=$(git describe --tags --abbrev=0) -X ${BUILD_INFO_PACKAGE}.Time=$(date -u '+%Y-%m-%d-%H:%M') -X ${BUILD_INFO_PACKAGE}.Name=${BUILD_NAME} -extldflags '-static'" \
   -installsuffix cgo \
-  -tags netgo \
   -o /bin/cribebot \
   ./cmd/cribe-bot
 
