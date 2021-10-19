@@ -60,4 +60,4 @@ require (
 
 replace github.com/go-telegram-bot-api/telegram-bot-api => github.com/robotomize/telegram-bot-api v1.0.1-0.20211011211313-ce26e93d1e9e
 
-//replace github.com/kkdai/youtube/v2 v2.7.4 => github.com/robotomize/youtube/v2 v2.7.5-0.20211019164800-6ee21b82f993
+replace github.com/kkdai/youtube/v2 v2.7.4 => github.com/robotomize/youtube/v2 v2.7.5-0.20211019164800-6ee21b82f993

@@ -445,8 +445,6 @@ github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51/go.mod h1:C
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
 github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI2bnpBCr8=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
-github.com/kkdai/youtube/v2 v2.7.4 h1:F6lsxQK3fOa2i91N0RtrbcFSt2ryf24457t6mn710/E=
-github.com/kkdai/youtube/v2 v2.7.4/go.mod h1:XMmc0kbC9q/gPc6i881DjFYK53CuAAFrg1cx6Wn15F0=
 github.com/klauspost/compress v1.9.5/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/compress v1.11.13/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.12.2/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
@@ -565,6 +563,8 @@ github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0/go.mod h1:qq
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/robotomize/telegram-bot-api v1.0.1-0.20211011211313-ce26e93d1e9e h1:z2O4QNZ8De5ejlIazlCFmVRqoKqSE8DLnV87xvaoxxk=
 github.com/robotomize/telegram-bot-api v1.0.1-0.20211011211313-ce26e93d1e9e/go.mod h1:lDm2E64X4OjFdBUA4hlN4mEvbSitvhJdKw7rsA8KHgI=
+github.com/robotomize/youtube/v2 v2.7.5-0.20211019164800-6ee21b82f993 h1:wTsfAUHfuFBdKLKuZ6MbgCLcQpMVe97lZREUMTiDKIo=
+github.com/robotomize/youtube/v2 v2.7.5-0.20211019164800-6ee21b82f993/go.mod h1:XMmc0kbC9q/gPc6i881DjFYK53CuAAFrg1cx6Wn15F0=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
 github.com/rogpeppe/go-internal v1.1.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=

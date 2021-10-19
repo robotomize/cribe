@@ -24,10 +24,7 @@ func (s *Dispatcher) fetch(ctx context.Context, queue AMQPChannel, payload Paylo
 
 	format := video.Formats.WithAudioChannels().FindByQuality("hd720")
 	if format == nil {
-		format := video.Formats.WithAudioChannels().FindByQuality("medium")
-		if format == nil {
-			return errors.New("video format not found")
-		}
+		return errors.New("video format not found")
 	}
 
 	payload.Mime = format.MimeType
