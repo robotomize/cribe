@@ -7,7 +7,7 @@ GOOS?=linux
 GOARCH=amd64
 GO111MODULE?=on
 
-BUILD_INFO_PACKAGE = github.com/robotomize/internal/buildinfo
+BUILD_INFO_PACKAGE = github.com/robotomize/cribe/internal/buildinfo
 BUILD_TAG=$(shell git describe --tags --abbrev=0)
 BUILD_TIME?=$(shell date -u '+%Y-%m-%d-%H:%M')
 BUILD_NAME?=cribebot
