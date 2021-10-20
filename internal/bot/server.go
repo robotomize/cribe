@@ -50,8 +50,9 @@ type Options struct {
 
 type Option func(*Dispatcher)
 
-func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
+func NewDispatcher(env *srvenv.Env, opts ...Option) (*Dispatcher, error) {
 	cfg := env.Config()
+
 	d := Dispatcher{
 		opts: Options{
 			Bucket:                    cfg.Storage.Bucket,
@@ -72,7 +73,7 @@ func NewDispatcher(env *srvenv.Env, opts ...Option) *Dispatcher {
 		o(&d)
 	}
 
-	return &d
+	return &d, nil
 }
 
 type Dispatcher struct {

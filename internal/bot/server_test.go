@@ -418,7 +418,7 @@ func TestDispatcher_fetch(t *testing.T) {
 				Return(stringReadCloser, int64(stringReader.Len()), tc.streamVideoErr).
 				AnyTimes()
 
-			d := NewDispatcher(&srvenv.Env{})
+			d, _ := NewDispatcher(&srvenv.Env{})
 			d.youtubeClient = deps.youtubeClient
 			d.metadataDB = deps.metadata
 			d.storage = deps.storage

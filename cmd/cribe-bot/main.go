@@ -56,7 +56,11 @@ func main() {
 	}()
 
 	telegram := env.Telegram()
-	dispatcher := bot.NewDispatcher(env)
+	dispatcher, err := bot.NewDispatcher(env)
+	if err != nil {
+		logger.Fatalf("new telegram dispatcher: %v", err)
+	}
+
 	logger.Info("cribe-bot started")
 	if err = dispatcher.Run(ctx, telegram, env.Config()); err != nil {
 		logger.Fatalf("bot dispatcher: %v", err)
