@@ -14,6 +14,8 @@ sudo docker-compose up
 ```
 
 ## Requirements
+Why do I need a telegram bot proxy? To upload files larger than 20mb to telegram. You will also need to register your hash, id in telegram. It is not difficult.
+
 * PostgreeSQL for metadata
 * Redis for store user session
 * RabbitMQ for fetching/uploading queue
