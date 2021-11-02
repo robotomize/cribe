@@ -10,13 +10,13 @@ For local only. Youtube after limit download speed =( But you can try my open bo
 ## Install
 You need to read all the environment variables from the docker-compose.yml file
 ```bash
-sudo docker-compose up
+docker-compose up
 ```
 
 ## Requirements
 Why do I need a telegram bot proxy? To upload files larger than 20mb to telegram. You will also need to register your hash, id in telegram. It is not difficult.
 
-* PostgreeSQL for metadata
+* PostgreSQL for metadata
 * Redis for store user session
 * RabbitMQ for fetching/uploading queue
 * telegrambot api proxy for uploading large files to telegram
