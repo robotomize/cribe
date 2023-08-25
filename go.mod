@@ -1,6 +1,6 @@
 module github.com/robotomize/cribe
 
-go 1.17
+go 1.21
 
 require (
 	github.com/aws/aws-sdk-go v1.40.59
@@ -43,7 +43,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20211008194852-3b03d305991f // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
 

@@ -38,7 +38,7 @@ func main() {
 		With("build_time", buildinfo.Info.Time())
 	ctx = logging.WithLogger(ctx, logger)
 
-	defer env.AMQP().Close() //nolint
+	defer env.AMQP().Close() // nolint
 
 	mux := http.NewServeMux()
 	mux.HandleFunc(
@@ -49,7 +49,7 @@ func main() {
 	mux.Handle("/debug/pprof/", http.Handler(http.DefaultServeMux))
 
 	go func() {
-		if err = http.ListenAndServe(cfg.Addr, mux); err != nil {
+		if err = http.ListenAndServe(cfg.Addr, mux); err != nil { // nolint
 			logger.Errorf("listen and serve metrics: %v", err)
 			cancel()
 		}

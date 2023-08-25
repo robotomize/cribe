@@ -37,7 +37,6 @@ var encoderConfig = zapcore.EncoderConfig{
 func NewLogger(level string) *zap.SugaredLogger {
 	zapLevel := convertLevel(level)
 
-	zap.NewProductionEncoderConfig()
 	config := &zap.Config{
 		Level:       zap.NewAtomicLevelAt(zapLevel),
 		Development: false,
@@ -60,9 +59,11 @@ func NewLogger(level string) *zap.SugaredLogger {
 }
 
 func DefaultLogger() *zap.SugaredLogger {
-	defaultLoggerOnce.Do(func() {
-		defaultLogger = NewLogger("")
-	})
+	defaultLoggerOnce.Do(
+		func() {
+			defaultLogger = NewLogger("")
+		},
+	)
 	return defaultLogger
 }
 
