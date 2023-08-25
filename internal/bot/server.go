@@ -165,10 +165,12 @@ func (s *Dispatcher) finalization() error {
 
 	var merr *multierror.Error
 	for _, job := range s.Jobs {
-		encoded, err := json.Marshal(Payload{
-			VideoID: job.VideoID,
-			ChatID:  job.ChatID,
-		})
+		encoded, err := json.Marshal(
+			Payload{
+				VideoID: job.VideoID,
+				ChatID:  job.ChatID,
+			},
+		)
 		if err != nil {
 			merr = multierror.Append(err, merr)
 			continue
@@ -194,7 +196,11 @@ func (s *Dispatcher) finalization() error {
 	return merr.ErrorOrNil()
 }
 
-func (s *Dispatcher) setupTelegramMode(ctx context.Context, telegram *tgbotapi.BotAPI, cfg srvenv.TelegramConfig) (tgbotapi.UpdatesChannel, error) {
+func (s *Dispatcher) setupTelegramMode(
+	ctx context.Context,
+	telegram *tgbotapi.BotAPI,
+	cfg srvenv.TelegramConfig,
+) (tgbotapi.UpdatesChannel, error) {
 	logger := logging.FromContext(ctx).Named("Dispatcher.setupTelegramMode")
 	if cfg.WebHookURL != "" {
 		if _, err := telegram.SetWebhook(tgbotapi.NewWebhook(cfg.WebHookURL + cfg.Token)); err != nil {
@@ -211,7 +217,7 @@ func (s *Dispatcher) setupTelegramMode(ctx context.Context, telegram *tgbotapi.B
 
 		updates := telegram.ListenForWebhook("/" + cfg.Token)
 		go func() {
-			if err = http.ListenAndServe(cfg.WebHookURL, nil); err != nil {
+			if err = http.ListenAndServe(cfg.WebHookURL, nil); err != nil { // nolint
 				logger.Fatalf("Listen and serve http stopped: %v", err)
 			}
 		}()
@@ -345,10 +351,12 @@ func (s *Dispatcher) consumingVideoFetching(ctx context.Context, sender Telegram
 		}
 
 		s.mtx.Lock()
-		s.Jobs = append(s.Jobs, Job{
-			Kind:    JobKindFetching,
-			Payload: Payload{VideoID: payload.VideoID, ChatID: payload.ChatID},
-		})
+		s.Jobs = append(
+			s.Jobs, Job{
+				Kind:    JobKindFetching,
+				Payload: Payload{VideoID: payload.VideoID, ChatID: payload.ChatID},
+			},
+		)
 		s.mtx.Unlock()
 
 		if err = s.fetch(ctx, channel, payload); err != nil {
@@ -409,10 +417,12 @@ func (s *Dispatcher) consumingVideoUploading(ctx context.Context, sender Telegra
 		}
 
 		s.mtx.Lock()
-		s.Jobs = append(s.Jobs, Job{
-			Kind:    JobKindUploading,
-			Payload: Payload{VideoID: payload.VideoID, ChatID: payload.ChatID},
-		})
+		s.Jobs = append(
+			s.Jobs, Job{
+				Kind:    JobKindUploading,
+				Payload: Payload{VideoID: payload.VideoID, ChatID: payload.ChatID},
+			},
+		)
 		s.mtx.Unlock()
 
 		if err = s.upload(ctx, sender, payload); err != nil {
@@ -511,10 +521,12 @@ func (p *ParsingAction) Execute(eventCtx botstate.EventContext) botstate.EventTy
 		return nextState
 	}
 
-	encoded, err := json.Marshal(Payload{
-		VideoID: video.ID,
-		ChatID:  ctx.chatID,
-	})
+	encoded, err := json.Marshal(
+		Payload{
+			VideoID: video.ID,
+			ChatID:  ctx.chatID,
+		},
+	)
 	if err != nil {
 		logger.Errorf("json marshal: %v", err)
 		if _, err = ctx.tg.Send(tgbotapi.NewMessage(ctx.chatID, SendingMessageError)); err != nil {

@@ -78,9 +78,9 @@ func (db *DB) InTx(ctx context.Context, isoLevel pgx.TxIsoLevel, f func(tx pgx.T
 		return fmt.Errorf("starting tx: %w", err)
 	}
 
-	if err := f(tx); err != nil {
+	if err = f(tx); err != nil {
 		if txErr := tx.Rollback(ctx); txErr != nil {
-			return fmt.Errorf("rollback tx: %v with %w", txErr, err)
+			return fmt.Errorf("rollback tx: %w", err)
 		}
 		return err
 	}
