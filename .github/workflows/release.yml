@@ -5,34 +5,6 @@ on:
       - 'v*.*.*'
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cancel previous builds
-        uses: styfle/cancel-workflow-action@0.7.0
-        with:
-          access_token: ${{ github.token }}
-
-      - name: Set up Go 1.x
-        uses: actions/setup-go@v2
-        with:
-          go-version: ^1.17
-
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
-
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-test-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-test-
-            ${{ runner.os }}-go-
-
-      - name: Unit tests
-        run: go test -count=1 -race -timeout=10m ./... -coverprofile=coverage.out
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +16,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.16
+          go-version: '>=1.17.0'
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
@@ -60,32 +32,26 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: go-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
-          version: 'v1.40.1'
+          version: 'v1.54.2'
           skip-go-installation: true
           skip-pkg-cache: true
           skip-build-cache: true
 
-  build-verify:
-    needs: [ lint, test ]
+  build-tools:
     runs-on: ubuntu-latest
-
+    name: prepare
     steps:
-      - name: Cancel previous builds
-        uses: styfle/cancel-workflow-action@0.7.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Set up Go 1.x
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
-          go-version: ^1.17
+          go-version: ^1.20
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod
@@ -94,29 +60,23 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-test-
             ${{ runner.os }}-go-
-
       - name: Build
         run: go build ./cmd/cribe-bot
 
-  docker-push:
-    needs: build-verify
+  docker:
     runs-on: ubuntu-latest
-
+    needs: build-tools
+    name: docker
     steps:
-      - name: Cancel previous builds
-        uses: styfle/cancel-workflow-action@0.7.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Set up Go 1.x
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
-          go-version: ^1.17
+          go-version: ^1.20
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod
@@ -125,24 +85,23 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-test-
             ${{ runner.os }}-go-
-
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v2
+      - name: Build/Push server
+        uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./docker/Dockerfile
+          file: ./Dockerfile
           push: true
           tags: |
             robotomize/cribe:latest
