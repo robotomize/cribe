@@ -42,7 +42,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./Dockerfile
+          file: ./docker/BotApiDockerfile
           push: true
           tags: |
             robotomize/tgbotapi:latest
