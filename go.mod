@@ -18,7 +18,7 @@ require (
 	github.com/sethvargo/go-envconfig v0.3.5
 	github.com/streadway/amqp v1.0.0
 	go.uber.org/zap v1.19.1
-	golang.org/x/text v0.12.0
+	golang.org/x/text v0.13.0
 	golang.org/x/tools v0.6.0
 	gopkg.in/yaml.v2 v2.4.0
 )
